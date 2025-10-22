@@ -64,3 +64,8 @@ Thumbs.db
 /uploads/
 /data/outputs/
 /data/scraped_jobs/
+# Ignore files containing tokens or sensitive data
+HF_TOKEN_FIXED.md
+INTERVIEW_FIXED_FINAL.md
+FOOTPRINT_MODULE_UI_COMPLETE.md
+READY_TO_TEST.md
