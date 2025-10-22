@@ -1,0 +1,85 @@
+# FastAPI Web Backend Requirements
+# UtopiaHire - Complete Application Stack
+# Date: October 20, 2025
+
+# ============================================
+# Core FastAPI Framework
+# ============================================
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# ============================================
+# Data Validation & Settings
+# ============================================
+pydantic==2.5.0
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# ============================================
+# Database
+# ============================================
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+
+# ============================================
+# Authentication & Security
+# ============================================
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# ============================================
+# Document Processing (Resume/CV)
+# ============================================
+# PDF parsing
+PyPDF2==3.0.1
+
+# DOCX parsing
+python-docx==1.1.0
+
+# PDF generation for resume enhancement
+reportlab==4.0.7
+
+# ============================================
+# Natural Language Processing (NLP)
+# ============================================
+# NLTK for text analysis, tokenization, stopwords
+nltk==3.8.1
+
+# ============================================
+# HTTP & API Requests
+# ============================================
+httpx==0.25.2
+requests==2.31.0
+
+# ============================================
+# File Handling
+# ============================================
+aiofiles==23.2.1
+
+# ============================================
+# Rate Limiting
+# ============================================
+slowapi==0.1.9
+
+# ============================================
+# Testing
+# ============================================
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# ============================================
+# Optional: Background Tasks (commented out)
+# ============================================
+# celery==5.3.4
+# redis==5.0.1
+
+# ============================================
+# Optional: AI/ML Libraries (not currently used)
+# These are in .env but not imported in code
+# ============================================
+# transformers==4.35.2
+# sentence-transformers==2.2.2
+# torch==2.1.1
+# huggingface-hub==0.19.4

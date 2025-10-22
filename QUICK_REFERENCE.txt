@@ -1,0 +1,215 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃         🤖 DAILY JOB AUTOMATION - QUICK REFERENCE CARD          ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  📋 ESSENTIAL COMMANDS                                            ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  # Check API usage (run this first!)
+  python daily_job_updater.py --check-usage
+
+  # Test run (run once manually)
+  python daily_job_updater.py
+
+  # Setup automation (set and forget)
+  python daily_job_updater.py --setup-cron
+  crontab -e  # Add the cron line shown
+
+  # Monitor live updates
+  tail -f logs/job_updater.log
+
+  # Run test suite
+  ./test_daily_updater.sh
+
+  # Initial population (optional, one-time)
+  python quick_populate_jobs.py
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  📊 API LIMITS (Never Exceed These!)                              ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  SerpAPI:           100 searches/month  (Primary)
+  LinkedIn RapidAPI: 500 requests/month  (Fallback #1)
+  JSearch RapidAPI:  250 requests/month  (Fallback #2)
+
+  Daily Usage: 3-4 API calls/day
+  Monthly Usage: 80-96 calls/month (leaves 10-20% buffer)
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🗓️ WEEKLY SCHEDULE                                               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Monday    → MENA Tech Jobs
+  Tuesday   → Sub-Saharan Africa Tech Jobs
+  Wednesday → Data & Analytics Jobs
+  Thursday  → DevOps & Cloud Jobs
+  Friday    → Design & Product Jobs
+  Saturday  → Remote Opportunities
+  Sunday    → Popular Roles (Mixed)
+
+  Each day: ~30 new jobs added, ~30 old jobs removed
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  📈 EXPECTED RESULTS                                              ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Per Day:    30-50 jobs scraped, 20-40 stored (duplicates skipped)
+  Per Week:   ~210 new jobs
+  Per Month:  ~840 jobs total (before cleanup)
+  
+  Steady State (after 30 days):
+    • 300-400 jobs in database (rolling 30-day window)
+    • All jobs < 30 days old
+    • MENA: ~120 jobs
+    • Sub-Saharan Africa: ~105 jobs
+    • Remote: ~60 jobs
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🔍 MONITORING & LOGS                                             ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  View recent logs:
+    tail -50 logs/job_updater.log
+
+  Watch live:
+    tail -f logs/job_updater.log
+
+  Check errors:
+    grep ERROR logs/job_updater.log
+
+  Check API usage file:
+    cat logs/api_usage.json
+
+  Check cron execution:
+    tail -50 logs/cron.log
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🗄️ DATABASE QUERIES                                              ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  # Total jobs
+  psql -U postgres -d utopia_db -c "SELECT COUNT(*) FROM jobs;"
+
+  # Jobs by region
+  psql -U postgres -d utopia_db -c "
+    SELECT region, COUNT(*) 
+    FROM jobs 
+    GROUP BY region 
+    ORDER BY COUNT(*) DESC;"
+
+  # Recent jobs (last 7 days)
+  psql -U postgres -d utopia_db -c "
+    SELECT COUNT(*) 
+    FROM jobs 
+    WHERE posted_date >= CURRENT_DATE - INTERVAL '7 days';"
+
+  # Remote jobs
+  psql -U postgres -d utopia_db -c "
+    SELECT COUNT(*) FROM jobs WHERE remote = true;"
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🐛 TROUBLESHOOTING                                               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Problem: Cron not running
+  Solution: sudo systemctl status cron
+            sudo systemctl start cron
+
+  Problem: No new jobs
+  Solution: python daily_job_updater.py --check-usage
+            (Check if API limit reached)
+
+  Problem: Script errors
+  Solution: tail -100 logs/job_updater.log
+            (Check for error messages)
+
+  Problem: Database full
+  Solution: Old jobs auto-cleanup runs daily
+            Manual: DELETE FROM jobs 
+                   WHERE posted_date < CURRENT_DATE - 30;
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  ⚙️ CUSTOMIZATION                                                 ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Change schedule (in crontab -e):
+    0 6 * * *   → Run at 6 AM instead of 2 AM
+    0 2,14 * *  → Run twice daily (2 AM & 2 PM)
+
+  Change job retention:
+    Edit cleanup_old_jobs() in daily_job_updater.py
+    timedelta(days=45)  → Keep jobs 45 days instead of 30
+
+  Modify search strategies:
+    Edit get_todays_search_strategy() in daily_job_updater.py
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🎯 INITIAL SETUP (5 MINUTES)                                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Step 1: Test everything
+    ./test_daily_updater.sh
+
+  Step 2: Initial population (optional)
+    python quick_populate_jobs.py
+    (Adds ~300 jobs to seed database)
+
+  Step 3: Check API usage
+    python daily_job_updater.py --check-usage
+
+  Step 4: Setup automation
+    python daily_job_updater.py --setup-cron
+    crontab -e
+    (Add the cron line shown)
+
+  Step 5: Done! 🎉
+    Jobs will update daily at 2 AM automatically
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  ✨ KEY FEATURES                                                  ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  ✅ Fully Automated       → Set and forget
+  ✅ Smart API Management  → Never exceeds limits
+  ✅ Fresh Jobs Daily      → Users see new opportunities
+  ✅ Auto Cleanup          → Removes old jobs (30+ days)
+  ✅ Multi-Region Support  → MENA, Sub-Saharan Africa, Remote
+  ✅ Comprehensive Logging → Easy monitoring
+  ✅ Zero Cost             → Uses free API tiers only
+  ✅ Reliable              → 3 APIs with automatic fallback
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  📞 QUICK HELP                                                    ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  📖 Full Guide:    cat DAILY_JOB_AUTOMATION_GUIDE.md
+  📊 Architecture:  cat SYSTEM_OVERVIEW.md
+  🧪 Run Tests:     ./test_daily_updater.sh
+  📈 Check Status:  python daily_job_updater.py --check-usage
+  📝 View Logs:     tail -f logs/job_updater.log
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  🚀 ONE-LINER SETUP                                               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  ./test_daily_updater.sh && \
+  python daily_job_updater.py --setup-cron
+
+  Then: crontab -e (and add the cron line shown)
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  🎊 Your job board will have FRESH jobs EVERY DAY automatically! ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

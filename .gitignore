@@ -1,0 +1,66 @@
+# Environment variables
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Node/React
+node_modules/
+/frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/frontend/dist
+/frontend/build
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+/database/*.db
+
+# Logs
+*.log
+logs/
+backend.log
+server.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads with personal data
+/data/resumes/*.pdf
+/data/resumes/*.docx
+!/data/resumes/sample_resume.pdf
+/data/resumes/templates/*.pdf
+/data/resumes/templates/*.docx
+
+# Models (large files)
+*.pkl
+*.h5
+*.pt
+/models/*
+
+# Temporary files
+/uploads/
+/data/outputs/
+/data/scraped_jobs/
