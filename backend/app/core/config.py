@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # Database Settings (PostgreSQL)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://firas@localhost/utopiahire"
+        "postgresql://utopia_user:utopia_secure_2025@localhost/utopiahire"
     )
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 10

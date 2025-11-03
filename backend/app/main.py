@@ -11,8 +11,8 @@ from contextlib import asynccontextmanager
 import time
 import logging
 
-from backend.app.core.config import settings
-from backend.app.core.database import db_manager
+from app.core.config import settings
+from app.core.database import db_manager
 
 # Setup logging
 logging.basicConfig(
@@ -166,7 +166,7 @@ async def root():
 
 
 # Import and include routers
-from backend.app.api import auth, resume, jobs, interview
+from app.api import auth, resume, jobs, interview
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(resume.router, prefix=f"{settings.API_V1_PREFIX}/resumes", tags=["Resume"])
@@ -175,7 +175,7 @@ app.include_router(interview.router, tags=["Interview Simulator"])  # Interview 
 
 # Footprint Scanner Module
 try:
-    from backend.app.api import footprint
+    from app.api import footprint
     app.include_router(footprint.router, tags=["Footprint"])  # Footprint router has its own prefix
     logger.info("✅ Footprint Scanner module loaded")
 except Exception as e:

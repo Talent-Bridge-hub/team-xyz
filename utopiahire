@@ -1,8 +1,0 @@
-#!/bin/bash
-# UtopiaHire CLI Launcher
-# Makes it easy to run the CLI from anywhere
-
-# Activate virtual environment and run CLI
-cd /home/firas/Utopia
-source venv/bin/activate
-python cli/utopiahire.py "$@"

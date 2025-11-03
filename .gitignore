@@ -1,9 +1,22 @@
-# Environment variables
+# ============================================
+# Environment Variables & Secrets
+# ============================================
 .env
 .env.*
 *.env
+!.env.example
 
+# API Keys and Tokens (CRITICAL - DO NOT COMMIT)
+*_token.txt
+*_key.txt
+*.pem
+*.key
+dragon
+*.ppk
+
+# ============================================
 # Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,59 +26,126 @@ venv/
 env/
 ENV/
 .venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.pytest_cache/
 
-# Node/React
+# ============================================
+# Node.js / React / Frontend
+# ============================================
 node_modules/
 /frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
 /frontend/dist
 /frontend/build
+/frontend/.vite
+.npm
+.eslintcache
 
+# ============================================
 # Database
+# ============================================
 *.db
 *.sqlite
 *.sqlite3
 /database/*.db
+*.sql.backup
 
+# ============================================
 # Logs
+# ============================================
 *.log
 logs/
 backend.log
 server.log
+job_updater.log
+/logs/*.log
 
-# IDE
+# ============================================
+# IDE / Editor
+# ============================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ============================================
+# Operating System
+# ============================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Uploads with personal data
+# ============================================
+# User Data & Uploads (Personal Information)
+# ============================================
 /data/resumes/*.pdf
 /data/resumes/*.docx
 !/data/resumes/sample_resume.pdf
 /data/resumes/templates/*.pdf
 /data/resumes/templates/*.docx
+/data/outputs/
+/uploads/
 
-# Models (large files)
+# ============================================
+# Generated / Scraped Data
+# ============================================
+/data/scraped_jobs/
+
+# ============================================
+# Machine Learning Models (Large Files)
+# ============================================
 *.pkl
 *.h5
 *.pt
+*.pth
+*.onnx
+*.pb
 /models/*
+!models/.gitkeep
 
-# Temporary files
-/uploads/
-/data/outputs/
-/data/scraped_jobs/
-# Ignore files containing tokens or sensitive data
+# ============================================
+# Build Artifacts
+# ============================================
+dist/
+build/
+*.egg-info/
+.eggs/
+*.egg
+
+# ============================================
+# Documentation with Sensitive Info
+# ============================================
 HF_TOKEN_FIXED.md
 INTERVIEW_FIXED_FINAL.md
 FOOTPRINT_MODULE_UI_COMPLETE.md
 READY_TO_TEST.md
+*_PRIVATE.md
+*_SECRET.md
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+local_settings.py
