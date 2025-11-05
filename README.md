@@ -40,6 +40,8 @@
 - AI-powered content analysis
 - Resume enhancement suggestions
 - Professional template generation (3 styles)
+- AI-powered cover letter generation
+- Job compatibility analysis with detailed insights
 
 ---
 
@@ -63,8 +65,11 @@
 ### APIs & Services
 - **GitHub API** - Profile and repository analysis
 - **StackOverflow API** - Developer reputation tracking
-- **Groq API** - Ultra-fast AI inference for recommendations and analysis
-- **Job APIs** - Real-time job scraping (3 providers)
+- **Groq API** - Ultra-fast AI inference (llama-3.3-70b-versatile) for recommendations, cover letters, and analysis
+- **Job APIs** - Real-time job scraping:
+  - SerpAPI (Google Jobs) - Primary source
+  - LinkedIn RapidAPI - Fallback #1
+  - JSearch RapidAPI - Fallback #2
 
 ---
 
@@ -97,8 +102,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials and API keys
+# Create .env file with your database credentials and API keys
+# See "Environment Variables" section below for required variables
 
 # Run database migrations
 python backend/migrations/create_jobs_table.py
@@ -122,9 +127,9 @@ cd frontend
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env if needed (default: VITE_API_BASE_URL=http://localhost:8000)
+# Set up environment variables (optional)
+# Create frontend/.env if you need to customize API URL
+# Default: VITE_API_BASE_URL=http://localhost:8000
 
 # Start development server
 npm run dev
@@ -139,7 +144,6 @@ Frontend will run on: **http://localhost:5173**
 ### Root `.env`
 
 ```bash
-```bash
 # Database
 DATABASE_URL=postgresql://utopia_user:your_password@localhost/utopiahire
 
@@ -147,9 +151,12 @@ DATABASE_URL=postgresql://utopia_user:your_password@localhost/utopiahire
 GROQ_API_KEY=gsk_xxxxxxxxxxxxx
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
 
+# Job APIs
+SERPAPI_KEY=your_serpapi_key
+RAPIDAPI_KEY=your_rapidapi_key
+
 # Security
 SECRET_KEY=your-secret-key-here
-```
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
@@ -198,22 +205,22 @@ Utopia/
 └── logs/                 # Application logs
 ```
 
-For complete structure details, see [PROJECT_STRUCTURE_COMPLETE.md](PROJECT_STRUCTURE_COMPLETE.md)
+For complete structure details, see [PROJECT_STRUCTURE_COMPLETE.md](docs/PROJECT_STRUCTURE_COMPLETE.md)
 
 ---
 
 ## 🧪 Running Tests
 
 ```bash
-# Run all tests
+# Run backend tests
 cd tests
-python test_add_jobs.py
-python test_ai_integration.py
-python test_delete.py
-python test_enhancement_download.py
-python test_hf_token.py
-python test_interview_endpoint.py
-python test_job_matcher.py
+python test_api.py              # API endpoints
+python test_auth.py             # Authentication
+python test_jobs.py             # Job matching
+python test_resume.py           # Resume processing
+python test_interview_endpoint.py  # Interview simulator
+python test_footprint.py        # Footprint scanner
+python test_job_compatibility.py  # Job compatibility analysis
 ```
 
 ---
@@ -242,14 +249,13 @@ Once the backend is running, visit:
 
 ---
 
-## 📚 Module Documentation
+## 📚 Documentation
 
-Detailed documentation for each module:
+Detailed documentation:
 
-- [Module 1: Authentication](backend/AUTH_SYSTEM_COMPLETE.md)
-- [Module 2: Job Matcher](backend/MODULE_2_COMPLETE.md)
-- [Module 3: AI Interview](backend/MODULE_3_COMPLETE.md)
-- [API Architecture](backend/API_ARCHITECTURE.md)
+- [Complete Project Structure](docs/PROJECT_STRUCTURE_COMPLETE.md)
+- [Project Overview](docs/PROJECT_COMPLETE.md)
+- [Frontend UX Enhancements](docs/FRONTEND_UX_ENHANCEMENTS.md)
 
 ---
 
@@ -302,30 +308,38 @@ For issues and questions:
 - ✅ Digital Footprint Scanner
 - ✅ Resume Analyzer & Enhancer
 
-### Phase 2 (Planned)
+### Phase 2 (In Progress)
+- [x] Cover letter generation (AI-powered)
+- [x] Job compatibility analysis
+- [x] Theme toggle (dark/light mode)
 - [ ] Docker containerization
 - [ ] CI/CD pipeline with GitHub Actions
-- [ ] Admin dashboard
 - [ ] Email notifications
-- [ ] Mobile responsive improvements
 
-### Phase 3 (Future)
-- [ ] Machine learning model improvements
+### Phase 3 (Planned)
+- [ ] Admin dashboard
+- [ ] Mobile responsive improvements
 - [ ] Real-time chat support
 - [ ] Integration with more job boards
 - [ ] Advanced analytics dashboard
+
+### Phase 4 (Future)
+- [ ] Machine learning model fine-tuning
 - [ ] Mobile app (React Native)
+- [ ] API rate limiting and caching improvements
+- [ ] Advanced resume ATS optimization
 
 ---
 
 ## 📊 Project Stats
 
-- **Backend Files:** 23 Python files
-- **Frontend Files:** 43 TypeScript/TSX files
-- **Utility Scripts:** 14 files
-- **Total Source Files:** ~160 files
-- **Lines of Code:** 15,000+
-- **Test Coverage:** 7 test scripts
+- **Backend Files:** 50+ Python files
+- **Frontend Files:** 45+ TypeScript/TSX files  
+- **Utility Scripts:** 15+ files
+- **Total Source Files:** ~180 files
+- **Lines of Code:** 18,000+
+- **Test Scripts:** 14 comprehensive tests
+- **API Endpoints:** 30+ routes
 
 ---
 
