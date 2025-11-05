@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { resumeService, EnhancementSuggestion } from '../../services/resume.service';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ResumeEnhancementProps {
   resumeId: number;
@@ -13,44 +14,18 @@ interface ResumeEnhancementProps {
 
 export function ResumeEnhancement({ resumeId, resumeName }: ResumeEnhancementProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [suggestions, setSuggestions] = useState<EnhancementSuggestion[]>([]);
-  const [selectedSuggestions, setSelectedSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string>('');
-
-  const handleGetSuggestions = async () => {
-    setIsEnhancing(true);
-    setError('');
-    
-    try {
-      const result = await resumeService.enhanceResume(resumeId, 'full');
-      console.log('Enhancement result:', result);
-      setSuggestions(result.suggestions || []);
-    } catch (err: any) {
-      console.error('Enhancement error:', err);
-      setError(err.response?.data?.detail || 'Failed to get enhancement suggestions');
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
-  const handleToggleSuggestion = (section: string) => {
-    setSelectedSuggestions(prev =>
-      prev.includes(section)
-        ? prev.filter(s => s !== section)
-        : [...prev, section]
-    );
-  };
+  const { showSuccess } = useToast();
 
   const handleDownloadEnhanced = async () => {
     setIsEnhancing(true);
     setError('');
     
     try {
-      // Download enhanced resume with selected improvements
+      // Download enhanced resume with all improvements applied automatically
       const blob = await resumeService.downloadEnhancedResume(
         resumeId,
-        'full', // enhancement type
-        selectedSuggestions
+        'full' // enhancement type - applies all improvements
       );
       
       // Create download link
@@ -66,11 +41,7 @@ export function ResumeEnhancement({ resumeId, resumeName }: ResumeEnhancementPro
       document.body.removeChild(a);
       
       // Show success message
-      alert(`Enhanced resume downloaded successfully!\n${selectedSuggestions.length} improvements applied.`);
-      
-      // Reset state
-      setSuggestions([]);
-      setSelectedSuggestions([]);
+      showSuccess('Enhanced resume downloaded successfully with all improvements applied!');
       
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to download enhanced resume');
@@ -94,83 +65,26 @@ export function ResumeEnhancement({ resumeId, resumeName }: ResumeEnhancementPro
       </h2>
 
       <p className="text-sm text-gray-600 mb-4">
-        Get AI-powered suggestions to improve your resume
+        Generate and download an enhanced version of your resume with AI-powered improvements. This includes stronger action verbs, quantified achievements, grammar corrections, and ATS optimization to help you stand out to employers.
       </p>
 
-      {!suggestions.length ? (
-        <button
-          onClick={handleGetSuggestions}
-          disabled={isEnhancing}
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isEnhancing ? 'Analyzing...' : 'Get Enhancement Suggestions'}
-        </button>
-      ) : (
-        <div className="space-y-4">
-          <div className="border border-gray-200 rounded-md p-4 max-h-96 overflow-y-auto">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
-              Select improvements to apply ({suggestions.length} suggestions found):
-            </h3>
-            <div className="space-y-3">
-              {suggestions.map((suggestion, idx) => (
-                <label 
-                  key={idx} 
-                  className="flex items-start space-x-3 cursor-pointer hover:bg-gray-50 p-3 rounded border border-gray-100"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedSuggestions.includes(suggestion.section)}
-                    onChange={() => handleToggleSuggestion(suggestion.section)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-sm text-gray-900">{suggestion.section}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        suggestion.impact === 'high' ? 'bg-red-100 text-red-800' :
-                        suggestion.impact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {suggestion.impact} impact
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 mb-2">{suggestion.explanation}</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="font-medium text-gray-700">Before:</span>
-                        <p className="text-gray-600 italic mt-1">{suggestion.original_text.substring(0, 100)}...</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">After:</span>
-                        <p className="text-gray-600 mt-1">{suggestion.enhanced_text.substring(0, 100)}...</p>
-                      </div>
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex space-x-3">
-            <button
-              onClick={handleDownloadEnhanced}
-              disabled={selectedSuggestions.length === 0}
-              className="flex-1 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Apply & Download ({selectedSuggestions.length} improvements)
-            </button>
-            <button
-              onClick={() => {
-                setSuggestions([]);
-                setSelectedSuggestions([]);
-              }}
-              className="py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      <button
+        onClick={handleDownloadEnhanced}
+        disabled={isEnhancing}
+        className="w-full py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+      >
+        {isEnhancing ? (
+          <>
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Preparing Enhancement...
+          </>
+        ) : (
+          'Download Enhancement'
+        )}
+      </button>
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">

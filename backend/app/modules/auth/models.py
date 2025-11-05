@@ -1,106 +1,149 @@
 """
-Pydantic models for User authentication and management
-Request/response schemas for auth endpoints
+Database models and queries for User authentication
+Handles direct PostgreSQL database operations for the users table
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 
-# ========== Request Models ==========
+# ========== Database Schema Documentation ==========
+"""
+Users Table Schema (PostgreSQL):
 
-class UserRegister(BaseModel):
-    """User registration request"""
-    email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, description="Password (min 8 characters)")
-    full_name: str = Field(..., min_length=2, max_length=100, description="Full name")
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    region VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Note: 'name' field in DB maps to 'full_name' in API responses
+"""
+
+
+# ========== SQL Query Constants ==========
+
+class UserQueries:
+    """SQL queries for user operations"""
     
-    @validator('password')
-    def password_strength(cls, v):
-        """Validate password strength"""
-        if not any(char.isdigit() for char in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(char.isupper() for char in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        return v
-
-
-class UserLogin(BaseModel):
-    """User login request"""
-    email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., description="User password")
-
-
-class TokenRefresh(BaseModel):
-    """Token refresh request"""
-    refresh_token: str = Field(..., description="Refresh token")
-
-
-class UserUpdate(BaseModel):
-    """User profile update request"""
-    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    email: Optional[EmailStr] = None
-    current_password: Optional[str] = None
-    new_password: Optional[str] = Field(None, min_length=8)
+    # Create
+    INSERT_USER = """
+        INSERT INTO users (email, name, password_hash, created_at)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id, email, name, created_at
+    """
     
-    @validator('new_password')
-    def password_strength(cls, v):
-        """Validate new password strength"""
-        if v is not None:
-            if not any(char.isdigit() for char in v):
-                raise ValueError('Password must contain at least one digit')
-            if not any(char.isupper() for char in v):
-                raise ValueError('Password must contain at least one uppercase letter')
-        return v
-
-
-# ========== Response Models ==========
-
-class UserResponse(BaseModel):
-    """User information response"""
-    id: int
-    email: str
-    full_name: str
-    created_at: datetime
+    # Read
+    SELECT_BY_ID = """
+        SELECT id, email, name, password_hash, created_at, updated_at
+        FROM users
+        WHERE id = %s
+    """
     
-    @classmethod
-    def model_validate(cls, obj):
-        """Custom validation to map 'name' to 'full_name'"""
-        if isinstance(obj, dict):
-            # Map 'name' from DB to 'full_name' for API response
-            if 'name' in obj and 'full_name' not in obj:
-                obj['full_name'] = obj['name']
-        return super().model_validate(obj)
+    SELECT_BY_EMAIL = """
+        SELECT id, email, name, password_hash, created_at, updated_at
+        FROM users
+        WHERE email = %s
+    """
     
-    class Config:
-        from_attributes = True
-
-
-class TokenResponse(BaseModel):
-    """Token response after login/register"""
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
-    user: UserResponse
-
-
-class MessageResponse(BaseModel):
-    """Generic message response"""
-    message: str
-    success: bool = True
-
-
-# ========== Database Models (for internal use) ==========
-
-class UserInDB(BaseModel):
-    """User model as stored in database"""
-    id: int
-    email: str
-    full_name: str
-    password_hash: str
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    SELECT_ALL = """
+        SELECT id, email, name, created_at, updated_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """
     
-    class Config:
-        from_attributes = True
+    COUNT_USERS = """
+        SELECT COUNT(*) as count FROM users
+    """
+    
+    # Update
+    UPDATE_PROFILE = """
+        UPDATE users
+        SET name = %s, email = %s, updated_at = %s
+        WHERE id = %s
+        RETURNING id, email, name, created_at, updated_at
+    """
+    
+    UPDATE_PASSWORD = """
+        UPDATE users
+        SET password_hash = %s, updated_at = %s
+        WHERE id = %s
+    """
+    
+    UPDATE_USER = """
+        UPDATE users
+        SET {fields}
+        WHERE id = %s
+        RETURNING id, email, name, created_at, updated_at
+    """
+    
+    # Delete
+    DELETE_USER = """
+        DELETE FROM users WHERE id = %s
+    """
+    
+    # Check existence
+    CHECK_EMAIL_EXISTS = """
+        SELECT EXISTS(SELECT 1 FROM users WHERE email = %s) as exists
+    """
+
+
+# ========== Database Row Converters ==========
+
+def user_row_to_dict(row: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert database row to dictionary with proper field mapping
+    Maps 'name' (DB) to 'full_name' (API)
+    """
+    if not row:
+        return None
+    
+    return {
+        'id': row.get('id'),
+        'email': row.get('email'),
+        'full_name': row.get('name'),  # Map DB 'name' to API 'full_name'
+        'password_hash': row.get('password_hash'),  # DB password_hash column
+        'created_at': row.get('created_at'),
+        'updated_at': row.get('updated_at')
+    }
+
+
+def user_row_to_response(row: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert database row to API response format (without password)
+    """
+    if not row:
+        return None
+    
+    return {
+        'id': row.get('id'),
+        'email': row.get('email'),
+        'full_name': row.get('name'),  # Map DB 'name' to API 'full_name'
+        'created_at': row.get('created_at')
+    }
+
+
+def prepare_user_data(full_name: str, email: str, password_hash: str) -> tuple:
+    """
+    Prepare user data for insertion
+    Returns tuple ready for SQL INSERT
+    """
+    return (email, full_name, password_hash, datetime.utcnow())
+
+
+def prepare_update_data(user_id: int, **fields) -> tuple:
+    """
+    Prepare user data for update
+    Returns tuple ready for SQL UPDATE
+    """
+    fields['updated_at'] = datetime.utcnow()
+    # Map 'full_name' to 'name' for database
+    if 'full_name' in fields:
+        fields['name'] = fields.pop('full_name')
+    
+    return fields

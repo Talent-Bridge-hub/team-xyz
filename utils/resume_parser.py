@@ -186,11 +186,31 @@ class ResumeParser:
         WHY: Resumes have standard sections (Education, Experience, etc.)
         We need to identify where each section starts/ends
         
-        Returns:
-            Dictionary mapping section name to section text
+        IMPROVED: Handles poorly formatted PDFs with run-together text
         """
         sections = {}
-        lines = self.text.split('\n')
+        
+        # Aggressive cleanup for poorly formatted PDFs
+        text = self.text
+        
+        # Insert spaces before capital letters that follow lowercase (camelCase fix)
+        text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+        
+        # Insert line breaks before section keywords (even if run together)
+        section_patterns = [
+            (r'([a-z\)])(\s*Education)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Experience)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Skills)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Summary)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Contact)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Projects)', r'\1\n\n\2'),
+        ]
+        
+        for pattern, replacement in section_patterns:
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        
+        # Split by potential section markers
+        lines = text.split('\n')
         current_section = 'header'
         current_content = []
         
@@ -201,14 +221,19 @@ class ResumeParser:
             if not line_lower:
                 continue
             
-            # Check if line is a section header
+            # Check if line contains section keyword (more aggressive matching)
             detected_section = None
             for section_name, keywords in self.SECTION_KEYWORDS.items():
-                if any(keyword in line_lower for keyword in keywords):
-                    # Line matches a section keyword
-                    if len(line.split()) <= 5:  # Likely a header (short line)
-                        detected_section = section_name
-                        break
+                for keyword in keywords:
+                    # Check if keyword appears at word boundary
+                    if re.search(r'\b' + re.escape(keyword) + r'\b', line_lower):
+                        # If keyword is prominent (appears in first 20 chars or line is short)
+                        keyword_pos = line_lower.find(keyword)
+                        if keyword_pos < 20 or len(line.split()) <= 6:
+                            detected_section = section_name
+                            break
+                if detected_section:
+                    break
             
             if detected_section:
                 # Save previous section
@@ -251,7 +276,8 @@ class ResumeParser:
         Extract contact information (email, phone, etc.)
         """
         contact = {}
-        text = self.sections.get('header', '') + self.sections.get('contact', '')
+        # Search in ALL text, not just header/contact sections
+        text = self.text  # Use full resume text
         
         # Extract email using regex
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
@@ -259,11 +285,11 @@ class ResumeParser:
         if emails:
             contact['email'] = emails[0]
         
-        # Extract phone using regex
-        phone_pattern = r'[\+\(]?[1-9][0-9 .\-\(\)]{8,}[0-9]'
+        # Extract phone using regex - improved pattern
+        phone_pattern = r'[\+\(]?[1-9][0-9 .\-\(\)]{8,}[0-9]|\(\d{3}\)\s*\d{3}[-.\s]?\d{4}'
         phones = re.findall(phone_pattern, text)
         if phones:
-            contact['phone'] = phones[0]
+            contact['phone'] = phones[0].strip()
         
         # Extract LinkedIn
         linkedin_pattern = r'linkedin\.com/in/[\w-]+'
@@ -281,54 +307,114 @@ class ResumeParser:
     
     def _extract_education(self) -> List[Dict]:
         """
-        Extract education entries
+        Extract education entries - IMPROVED for poorly formatted PDFs
         """
         education = []
         education_text = self.sections.get('education', '')
         
         if education_text:
-            # Look for degree keywords
-            degrees = ['bachelor', 'master', 'phd', 'doctorate', 'diploma', 'certificate', 'b.sc', 'm.sc']
-            lines = education_text.split('\n')
+            # Look for institutions, degrees, and years
+            institutions = ['university', 'college', 'school', 'institute', 'academy']
+            degrees = ['bachelor', 'master', 'phd', 'doctorate', 'diploma', 'certificate', 'b.sc', 'm.sc', 'b.a', 'm.a']
             
-            current_entry = {}
-            for line in lines:
-                line_lower = line.lower()
+            # Find all year patterns (1970-2025)
+            years = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', education_text)
+            
+            # Find institution names
+            text_lower = education_text.lower()
+            found_institutions = []
+            for inst in institutions:
+                # Find sentences containing institution keywords
+                matches = re.finditer(r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+' + inst + r')', education_text, re.IGNORECASE)
+                for match in matches:
+                    found_institutions.append(match.group(1).strip())
+            
+            # Find degree mentions
+            found_degrees = []
+            for degree in degrees:
+                if degree in text_lower:
+                    # Extract context around degree
+                    pattern = r'([^.]*' + re.escape(degree) + r'[^.]*)'
+                    matches = re.findall(pattern, education_text, re.IGNORECASE)
+                    found_degrees.extend(matches)
+            
+            # Build education entries
+            if found_institutions or years or found_degrees:
+                entry = {}
+                if found_institutions:
+                    entry['institution'] = found_institutions[0]
+                if found_degrees:
+                    entry['degree'] = found_degrees[0].strip()
+                if years:
+                    entry['year'] = f"{years[0]} - {years[-1]}" if len(years) > 1 else years[0]
                 
-                # Check if line contains a degree
-                if any(degree in line_lower for degree in degrees):
-                    if current_entry:
-                        education.append(current_entry)
-                    current_entry = {'degree': line.strip()}
-                elif current_entry:
-                    # Add additional info to current entry
-                    if 'institution' not in current_entry:
-                        current_entry['institution'] = line.strip()
-                    elif 'year' not in current_entry and re.search(r'\d{4}', line):
-                        current_entry['year'] = line.strip()
-            
-            if current_entry:
-                education.append(current_entry)
+                # If we found anything education-related, add a generic entry
+                if not entry:
+                    entry = {
+                        'institution': 'Education listed',
+                        'description': education_text[:100]
+                    }
+                
+                education.append(entry)
         
         return education
     
     def _extract_experience(self) -> List[Dict]:
         """
-        Extract work experience entries
+        Extract work experience entries - IMPROVED for poorly formatted PDFs
         """
         experience = []
         exp_text = self.sections.get('experience', '')
         
+        if not exp_text:
+            # Try alternate section names
+            exp_text = self.sections.get('work experience', '') or self.sections.get('employment', '')
+        
         if exp_text:
-            # Split into entries (assuming blank lines separate them)
-            entries = exp_text.split('\n\n')
+            # Look for job titles and company patterns
+            # Pattern: Years (like "1975 - Present" or "2000 - 2020")
+            year_pattern = r'(19\d{2}|20[0-2]\d)\s*[-–]\s*(Present|19\d{2}|20[0-2]\d)'
+            year_matches = list(re.finditer(year_pattern, exp_text))
             
-            for entry in entries:
-                if entry.strip():
+            # Common job title keywords
+            job_keywords = ['founder', 'co-founder', 'ceo', 'cto', 'director', 'manager', 'engineer', 
+                           'developer', 'chair', 'co-chair', 'lead', 'senior', 'junior', 'analyst']
+            
+            # If we found years, split by year patterns
+            if year_matches:
+                for match in year_matches:
+                    # Get text around this year range
+                    start_pos = max(0, match.start() - 100)
+                    end_pos = min(len(exp_text), match.end() + 200)
+                    context = exp_text[start_pos:end_pos]
+                    
+                    # Try to find job title in context
+                    title = None
+                    for keyword in job_keywords:
+                        pattern = r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+' + keyword + r')'
+                        title_match = re.search(pattern, context, re.IGNORECASE)
+                        if title_match:
+                            title = title_match.group(1).strip()
+                            break
+                    
+                    if not title:
+                        # Extract capitalized words before the year as potential title
+                        before_year = exp_text[:match.start()].split()[-5:]
+                        title = ' '.join(before_year) if before_year else 'Position'
+                    
                     experience.append({
-                        'text': entry.strip(),
-                        'bullet_points': [line.strip() for line in entry.split('\n') if line.strip().startswith(('•', '-', '*'))]
+                        'title': title,
+                        'years': match.group(0),
+                        'text': context.strip()
                     })
+            
+            # If no year patterns found, create a single entry with all experience text
+            if not experience and exp_text.strip():
+                experience.append({
+                    'title': 'Professional Experience',
+                    'text': exp_text.strip(),
+                    'bullet_points': []
+                })
         
         return experience
     
@@ -350,9 +436,23 @@ class ResumeParser:
             # Split and clean
             skills = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
             
-            # Remove common words
-            stop_words = ['skills', 'technical', 'and', 'the', 'or']
-            skills = [s for s in skills if s.lower() not in stop_words and len(s) > 2]
+            # Remove common prefix words but keep the skill
+            # e.g., "Languages: Python" -> "Python"
+            cleaned_skills = []
+            stop_words = ['skills', 'technical', 'and', 'the', 'or', 'languages', 'frameworks', 'tools', 'technologies']
+            
+            for skill in skills:
+                # Remove prefix words
+                words = skill.split(':')
+                if len(words) > 1:
+                    # Take everything after the colon
+                    skill = words[-1].strip()
+                
+                # Check if it's not just a stop word
+                if skill.lower() not in stop_words and len(skill) > 2:
+                    cleaned_skills.append(skill)
+            
+            skills = cleaned_skills
         
         return skills
     

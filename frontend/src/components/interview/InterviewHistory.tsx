@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { interviewService } from '../../services/interview.service.ts';
+import { useToast } from '../../contexts/ToastContext';
+import { SkeletonCard } from '../common/Skeleton';
 
 interface SessionListItem {
   id: number;  // Changed from session_id to id
@@ -26,6 +28,7 @@ const InterviewHistory = ({ onViewSession }: InterviewHistoryProps) => {
   const [showDetails, setShowDetails] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     loadSessions();
@@ -60,7 +63,7 @@ const InterviewHistory = ({ onViewSession }: InterviewHistoryProps) => {
       console.error('[HISTORY] Error response:', err.response);
       const errorMessage = err.response?.data?.detail || err.message || 'Failed to load session details';
       setError(errorMessage);
-      alert(`Error loading report: ${errorMessage}`);
+      showError(`Error loading report: ${errorMessage}`);
     } finally {
       setDetailsLoading(false);
     }
@@ -89,13 +92,13 @@ const InterviewHistory = ({ onViewSession }: InterviewHistoryProps) => {
       }
       
       // Show success message
-      alert('Interview session deleted successfully!');
+      showSuccess('Interview session deleted successfully!');
     } catch (err: any) {
       console.error('Error deleting session:', err);
       console.error('Error response:', err.response);
       const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete session';
       setError(errorMessage);
-      alert(`Error: ${errorMessage}`);
+      showError(`Error: ${errorMessage}`);
     } finally {
       setDeleteLoading(null);
     }
@@ -158,11 +161,57 @@ const InterviewHistory = ({ onViewSession }: InterviewHistoryProps) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <svg className="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+      <div className="max-w-6xl mx-auto">
+        {/* Stats Overview Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="animate-pulse flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-12" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sessions List Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="animate-pulse space-y-2">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-64" />
+            </div>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+                        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+                      </div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-16 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                      <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

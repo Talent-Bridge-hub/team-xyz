@@ -8,8 +8,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
 
-from shared.security import verify_token
-from shared.database import get_database, DatabaseWrapper
+from app.shared.security import verify_token
+from app.shared.database import get_database, DatabaseWrapper
 from .service import AuthService
 from .schemas import UserResponseSchema
 

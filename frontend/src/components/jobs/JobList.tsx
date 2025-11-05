@@ -48,7 +48,8 @@ const JobList = ({ matchScores, initialFilters }: JobListProps) => {
         pageSize,
         filters.location,
         filters.jobType,
-        filters.remoteOnly || false
+        filters.remoteOnly || false,
+        filters.experienceLevel
       );
 
       setJobs(response.jobs);

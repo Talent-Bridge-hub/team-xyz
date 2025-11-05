@@ -4,6 +4,7 @@ User registration, login, token refresh, profile management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 import sys
 import os
@@ -73,9 +74,13 @@ async def register(
     # Get created user
     user = db.get_one("users", "id = %s", (user_id,))
     
-    # Map 'name' to 'full_name' for response
-    if 'name' in user:
-        user['full_name'] = user['name']
+    # Map 'name' to 'full_name' for response and exclude password_hash
+    user_response_data = {
+        'id': user['id'],
+        'email': user['email'],
+        'full_name': user.get('name', ''),
+        'created_at': user.get('created_at')
+    }
     
     # Create access token
     access_token = create_access_token(
@@ -86,25 +91,29 @@ async def register(
         access_token=access_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse(**user)
+        user=UserResponse(**user_response_data)
     )
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    credentials: UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: DatabaseWrapper = Depends(get_database)
 ):
     """
     Login with email and password
     
-    - **email**: User's email address
+    - **username**: User's email address (OAuth2 spec uses 'username')
     - **password**: User's password
     
     Returns JWT access token and user information
     """
+    # OAuth2 uses 'username' field for email
+    email = form_data.username
+    password = form_data.password
+    
     # Get user from database
-    user = db.get_one("users", "email = %s", (credentials.email,))
+    user = db.get_one("users", "email = %s", (email,))
     
     if user is None:
         raise HTTPException(
@@ -114,16 +123,20 @@ async def login(
         )
     
     # Verify password
-    if not verify_password(credentials.password, user["password_hash"]):
+    if not verify_password(password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Map 'name' to 'full_name' for response
-    if 'name' in user:
-        user['full_name'] = user['name']
+    # Map 'name' to 'full_name' for response and exclude password_hash
+    user_response_data = {
+        'id': user['id'],
+        'email': user['email'],
+        'full_name': user.get('name', ''),
+        'created_at': user.get('created_at')
+    }
     
     # Create access token
     access_token = create_access_token(
@@ -134,7 +147,7 @@ async def login(
         access_token=access_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse(**user)
+        user=UserResponse(**user_response_data)
     )
 
 

@@ -50,7 +50,7 @@
 - **Database:** PostgreSQL
 - **ORM/Query:** psycopg2
 - **Authentication:** JWT tokens with bcrypt
-- **AI/ML:** HuggingFace Transformers (Zephyr-7b-beta, Mistral), spaCy NLP
+- **AI/ML:** Groq API (llama-3.3-70b-versatile), spaCy NLP
 
 ### Frontend
 - **Framework:** React 18 with TypeScript
@@ -63,7 +63,7 @@
 ### APIs & Services
 - **GitHub API** - Profile and repository analysis
 - **StackOverflow API** - Developer reputation tracking
-- **HuggingFace API** - AI-powered text generation and analysis
+- **Groq API** - Ultra-fast AI inference for recommendations and analysis
 - **Job APIs** - Real-time job scraping (3 providers)
 
 ---
@@ -139,15 +139,17 @@ Frontend will run on: **http://localhost:5173**
 ### Root `.env`
 
 ```bash
+```bash
 # Database
 DATABASE_URL=postgresql://utopia_user:your_password@localhost/utopiahire
 
 # API Keys
-HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxx
+GROQ_API_KEY=gsk_xxxxxxxxxxxxx
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
 
 # Security
 SECRET_KEY=your-secret-key-here
+```
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
@@ -331,7 +333,7 @@ For issues and questions:
 
 - **FastAPI** - Modern, fast web framework for Python
 - **React** - A JavaScript library for building user interfaces
-- **HuggingFace** - AI models and transformers
+- **Groq** - Lightning-fast LLM inference platform
 - **TailwindCSS** - Utility-first CSS framework
 - **PostgreSQL** - Robust relational database
 

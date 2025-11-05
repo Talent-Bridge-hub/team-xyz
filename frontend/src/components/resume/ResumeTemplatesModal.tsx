@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { resumeService } from '../../services/resume.service';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Template {
   id: string;
@@ -24,6 +25,7 @@ export function ResumeTemplatesModal({ isOpen, onClose }: ResumeTemplatesModalPr
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -64,11 +66,13 @@ export function ResumeTemplatesModal({ isOpen, onClose }: ResumeTemplatesModalPr
       document.body.removeChild(a);
       
       // Show success message
-      alert(`Template "${templateName}" downloaded successfully!\nFill in your details, save it, and upload it for analysis.`);
+      showSuccess(`Template "${templateName}" downloaded successfully! Fill in your details, save it, and upload it for analysis.`);
       
     } catch (err: any) {
       console.error('Download failed:', err);
-      setError(`Failed to download template: ${err.message}`);
+      const errorMsg = `Failed to download template: ${err.message}`;
+      setError(errorMsg);
+      showError(errorMsg);
     }
   };
 

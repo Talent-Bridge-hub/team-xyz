@@ -1,45 +1,47 @@
 """
-AI-Powered Recommendation Generator for GitHub Profiles
-Analyzes profile README and generates personalized career recommendations
+AI-Powered Recommendation Generator using Groq API
+Analyzes GitHub profile README and generates personalized career recommendations
 
-Uses Hugging Face Inference API for intelligent analysis
+Uses Groq's fast LLM inference for intelligent analysis
 """
 
 import logging
 import json
 import re
 from typing import Dict, List, Optional
-from huggingface_hub import InferenceClient
+from groq import Groq
 import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class AIRecommendationGenerator:
+class GroqRecommendationGenerator:
     """
     Generate AI-powered personalized recommendations based on GitHub profile analysis
+    Uses Groq API for ultra-fast inference
     """
     
-    def __init__(self, hf_token: str = None):
+    def __init__(self, groq_api_key: str = None):
         """
-        Initialize the AI recommendation generator
+        Initialize the Groq recommendation generator
         
         Args:
-            hf_token: Hugging Face API token (optional, can use env var)
+            groq_api_key: Groq API key (optional, can use env var GROQ_API_KEY)
         """
-        self.hf_token = hf_token or os.getenv('HUGGINGFACE_TOKEN')
+        self.api_key = groq_api_key or os.getenv('GROQ_API_KEY')
         
-        if not self.hf_token:
-            logger.warning("No HuggingFace token provided. Using public models with rate limits.")
-            logger.warning("Get a free token at: https://huggingface.co/settings/tokens")
+        if not self.api_key:
+            raise ValueError("Groq API key is required. Set GROQ_API_KEY environment variable or pass groq_api_key parameter.")
         
-        self.client = InferenceClient(token=self.hf_token)
-        # Use a reliable model for chat/text generation
-        # These models are free and work well with HuggingFace Inference API
-        self.model = "HuggingFaceH4/zephyr-7b-beta"
+        self.client = Groq(api_key=self.api_key)
         
-        logger.info(f"AI Recommendation Generator initialized with model: {self.model}")
+        # Use Groq's fastest models
+        # llama-3.3-70b-versatile: Best for complex reasoning
+        # llama-3.1-8b-instant: Fastest, good for quick tasks
+        self.model = "llama-3.3-70b-versatile"
+        
+        logger.info(f"✅ Groq AI Recommendation Generator initialized with model: {self.model}")
     
     def analyze_readme_and_generate_recommendations(
         self,
@@ -58,7 +60,7 @@ class AIRecommendationGenerator:
         Returns:
             Dictionary with profile_recommendations, career_insights, and skill_gaps
         """
-        logger.info("Generating AI-powered recommendations...")
+        logger.info("🤖 Generating AI-powered recommendations using Groq...")
         
         # Extract key information
         profile = github_data.get('profile', {})
@@ -76,8 +78,10 @@ class AIRecommendationGenerator:
             stackoverflow_data=stackoverflow_data
         )
         
-        # Generate recommendations using AI
+        # Generate recommendations using Groq AI
         recommendations = self._generate_ai_recommendations(context)
+        
+        logger.info(f"✅ Generated {len(recommendations.get('profile_recommendations', []))} recommendations")
         
         return recommendations
     
@@ -110,12 +114,14 @@ class AIRecommendationGenerator:
         context_parts.append(f"Total Stars: {repos.get('total_stars', 0)}")
         context_parts.append(f"Total Forks: {repos.get('total_forks', 0)}")
         
-        languages = repos.get('languages', {})
+        # Languages
+        languages = repos.get('language_percentages', repos.get('languages', {}))
         if languages:
             context_parts.append("\nProgramming Languages:")
-            for lang, count in list(languages.items())[:5]:
-                context_parts.append(f"  - {lang}: {count} repos")
+            for lang, percentage in list(languages.items())[:5]:
+                context_parts.append(f"  - {lang}: {percentage}%")
         
+        # Skills (frameworks, databases, tools)
         skills = repos.get('skills', {})
         for category, items in skills.items():
             if items:
@@ -123,6 +129,7 @@ class AIRecommendationGenerator:
                 for item, count in list(items.items())[:5]:
                     context_parts.append(f"  - {item}: {count} repos")
         
+        # Top repositories
         top_repos = repos.get('top_repos', [])
         if top_repos:
             context_parts.append("\nTop Repositories:")
@@ -145,7 +152,7 @@ class AIRecommendationGenerator:
         context_parts.append(f"Activity: {scores.get('activity_score', 0)}/100")
         context_parts.append(f"Impact: {scores.get('impact_score', 0)}/100")
         
-        # README content (most important!)
+        # README content (most important for personalization!)
         if readme_content:
             context_parts.append("\n=== PROFILE README ===")
             # Limit README to 2000 chars to avoid token limits
@@ -162,20 +169,23 @@ class AIRecommendationGenerator:
             so_profile = stackoverflow_data.get('profile', {})
             context_parts.append("\n=== STACKOVERFLOW ===")
             context_parts.append(f"Reputation: {so_profile.get('reputation', 0)}")
-            context_parts.append(f"Questions: {so_profile.get('question_count', 0)}")
-            context_parts.append(f"Answers: {so_profile.get('answer_count', 0)}")
+            
+            so_scores = stackoverflow_data.get('scores', {})
+            context_parts.append(f"Overall SO Score: {so_scores.get('overall_stackoverflow_score', 0)}/100")
             
             tags = stackoverflow_data.get('top_tags', [])
             if tags:
                 context_parts.append("Top Tags:")
                 for tag in tags[:5]:
-                    context_parts.append(f"  - {tag.get('name')}: {tag.get('count')} posts")
+                    tag_name = tag.get('name') or tag.get('tag_name', 'unknown')
+                    tag_count = tag.get('count') or tag.get('answer_count', 0)
+                    context_parts.append(f"  - {tag_name}: {tag_count} posts")
         
         return "\n".join(context_parts)
     
     def _generate_ai_recommendations(self, context: str) -> Dict[str, List[Dict]]:
         """
-        Generate recommendations using AI based on profile context
+        Generate recommendations using Groq AI based on profile context
         """
         prompt = f"""You are an expert career advisor for software developers. Analyze the following developer's GitHub profile and provide personalized recommendations.
 
@@ -187,18 +197,25 @@ Based on the above information, provide:
    - Focus on improving GitHub presence, portfolio, and visibility
    - Consider README content, project descriptions, and profile completeness
    - Prioritize based on current weaknesses (high/medium/low priority)
+   - Make recommendations SPECIFIC to this developer's situation
 
 2. **Career Insights** (2-3 insights):
    - Identify technical strengths based on languages, frameworks, and projects
    - Highlight unique skills or expertise areas
    - Note career trajectory and potential paths
+   - Reference specific evidence from their profile
 
 3. **Skill Gaps** (3-5 skills):
    - Identify in-demand technologies not currently in their stack
    - Consider industry trends and complementary skills
    - Suggest skills that align with their existing expertise
 
-Format your response as JSON with this structure:
+**IMPORTANT**: 
+- If there's a README, reference specific content from it in your recommendations
+- Be SPECIFIC and ACTIONABLE based on the actual profile data, not generic advice
+- Consider the developer's current level (scores) when making recommendations
+
+Format your response as JSON with this exact structure:
 {{
   "profile_recommendations": [
     {{
@@ -206,7 +223,8 @@ Format your response as JSON with this structure:
       "priority": "high|medium|low",
       "title": "Short recommendation title",
       "description": "Detailed explanation of why this matters",
-      "action_items": ["Specific action 1", "Specific action 2", "Specific action 3"]
+      "action_items": ["Specific action 1", "Specific action 2", "Specific action 3"],
+      "impact": "Expected impact or benefit"
     }}
   ],
   "career_insights": [
@@ -220,31 +238,33 @@ Format your response as JSON with this structure:
   "skill_gaps": ["Skill 1", "Skill 2", "Skill 3"]
 }}
 
-Make recommendations SPECIFIC and ACTIONABLE based on the actual profile data, not generic advice.
-If there's a README, reference specific content from it in your recommendations.
-"""
+Respond ONLY with the JSON, no other text."""
 
         try:
-            # Call AI model using chat completion
-            logger.info("Calling AI model for recommendations...")
+            # Call Groq API
+            logger.info("📡 Calling Groq API for recommendations...")
             
-            messages = [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-            
-            response = self.client.chat_completion(
-                messages=messages,
+            chat_completion = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert career advisor for software developers. Provide specific, actionable recommendations in JSON format only."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
                 model=self.model,
-                max_tokens=2000,
-                temperature=0.7
+                max_tokens=2500,
+                temperature=0.7,
+                top_p=1,
+                stream=False
             )
             
-            # Extract the assistant's response
-            ai_response = response.choices[0].message.content
-            logger.info("AI response received")
+            # Extract response
+            ai_response = chat_completion.choices[0].message.content
+            logger.info(f"✅ Groq API response received ({len(ai_response)} chars)")
             
             # Parse JSON from response
             recommendations = self._parse_ai_response(ai_response)
@@ -252,7 +272,7 @@ If there's a README, reference specific content from it in your recommendations.
             return recommendations
             
         except Exception as e:
-            logger.error(f"Error generating AI recommendations: {e}")
+            logger.error(f"❌ Error generating AI recommendations: {e}")
             # Fallback to rule-based recommendations
             return self._fallback_recommendations(context)
     
@@ -261,28 +281,40 @@ If there's a README, reference specific content from it in your recommendations.
         Parse AI response and extract recommendations
         """
         try:
-            # Try to find JSON in response
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                recommendations = json.loads(json_str)
-                
-                # Validate structure
-                if 'profile_recommendations' in recommendations:
-                    return recommendations
+            # Clean response - remove markdown code blocks if present
+            cleaned_response = response.strip()
+            if cleaned_response.startswith('```json'):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.startswith('```'):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith('```'):
+                cleaned_response = cleaned_response[:-3]
+            cleaned_response = cleaned_response.strip()
             
-            logger.warning("Could not parse AI response as JSON, using fallback")
+            # Parse JSON
+            recommendations = json.loads(cleaned_response)
+            
+            # Validate structure
+            if 'profile_recommendations' in recommendations:
+                logger.info("✅ Successfully parsed AI recommendations")
+                return recommendations
+            else:
+                logger.warning("⚠️  AI response missing expected fields, using fallback")
+                return self._create_default_recommendations()
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decode error: {e}")
+            logger.error(f"Response was: {response[:200]}...")
             return self._create_default_recommendations()
-            
         except Exception as e:
-            logger.error(f"Error parsing AI response: {e}")
+            logger.error(f"❌ Error parsing AI response: {e}")
             return self._create_default_recommendations()
     
     def _fallback_recommendations(self, context: str) -> Dict[str, List[Dict]]:
         """
         Generate rule-based recommendations as fallback with README analysis
         """
-        logger.info("Using fallback rule-based recommendations with README analysis")
+        logger.info("⚠️  Using fallback rule-based recommendations")
         
         recommendations = {
             "profile_recommendations": [],
@@ -292,154 +324,54 @@ If there's a README, reference specific content from it in your recommendations.
         
         # Parse context for basic metrics
         has_readme = "No profile README found" not in context
-        readme_content = ""
-        if has_readme and "=== PROFILE README ===" in context:
-            # Extract README content
-            parts = context.split("=== PROFILE README ===")
-            if len(parts) > 1:
-                readme_parts = parts[1].split("===")
-                if readme_parts:
-                    readme_content = readme_parts[0].strip()
-        
-        # Analyze README content for personalization
-        readme_mentions_cloud = any(word in readme_content.lower() for word in ['aws', 'azure', 'gcp', 'cloud', 'kubernetes', 'docker'])
-        readme_mentions_web = any(word in readme_content.lower() for word in ['react', 'vue', 'angular', 'frontend', 'web'])
-        readme_mentions_backend = any(word in readme_content.lower() for word in ['backend', 'api', 'server', 'django', 'flask', 'express'])
-        readme_mentions_learning = any(word in readme_content.lower() for word in ['learning', 'studying', 'exploring', 'currently working on'])
         
         if not has_readme:
             recommendations["profile_recommendations"].append({
                 "category": "Profile Optimization",
                 "priority": "high",
                 "title": "Create a GitHub Profile README",
-                "description": "A profile README is your digital portfolio's homepage. It's the first thing visitors see and significantly increases profile engagement by 10x.",
+                "description": "A profile README is your digital portfolio's homepage and significantly increases engagement.",
                 "action_items": [
                     "Create a repository with the same name as your username",
                     "Add a README.md showcasing your skills, projects, and interests",
-                    "Include sections: About Me, Tech Stack, Featured Projects, and Contact Info",
-                    "Add dynamic elements like GitHub stats, contribution graphs, or tech icons"
+                    "Include sections: About Me, Tech Stack, Featured Projects",
+                    "Add dynamic elements like GitHub stats or contribution graphs"
                 ],
-                "impact": "Significantly increases profile visibility and engagement with recruiters"
+                "impact": "10x increase in profile visibility and recruiter engagement"
             })
-        else:
-            # README exists - provide specific improvement suggestions
-            recommendations["career_insights"].append({
-                "insight_type": "strengths",
-                "title": "Strong Profile Presentation",
-                "description": "You have a profile README which demonstrates professionalism and attention to detail",
-                "evidence": ["Profile README created", "Public repositories", "Active engagement"]
-            })
-            
-            # Personalized recommendations based on README content
-            if readme_mentions_cloud:
-                recommendations["profile_recommendations"].append({
-                    "category": "Portfolio",
-                    "priority": "high",
-                    "title": "Expand Your Cloud Portfolio",
-                    "description": "Your README shows interest in cloud technologies. Build projects that demonstrate hands-on cloud experience.",
-                    "action_items": [
-                        "Deploy a full-stack application on AWS/Azure/GCP",
-                        "Create infrastructure-as-code with Terraform or CloudFormation",
-                        "Document cloud architecture and cost optimization in README",
-                        "Add CI/CD pipeline using GitHub Actions or similar"
-                    ],
-                    "impact": "Demonstrates practical cloud skills that employers actively seek"
-                })
-                recommendations["skill_gaps"].extend(["AWS Certified Solutions Architect", "Kubernetes Administration", "Terraform"])
-            
-            if readme_mentions_web and not readme_mentions_backend:
-                recommendations["profile_recommendations"].append({
-                    "category": "Skills Development",
-                    "priority": "medium",
-                    "title": "Build Full-Stack Experience",
-                    "description": "Your README shows frontend focus. Adding backend skills makes you more versatile.",
-                    "action_items": [
-                        "Create a RESTful API using Node.js/Express or Python/FastAPI",
-                        "Integrate your frontend projects with a custom backend",
-                        "Learn database design (PostgreSQL, MongoDB)",
-                        "Deploy full-stack applications"
-                    ],
-                    "impact": "Increases marketability as a full-stack developer (30-40% higher salary range)"
-                })
-                recommendations["skill_gaps"].extend(["Backend Development", "API Design", "Database Management"])
-            
-            if readme_mentions_learning:
-                recommendations["career_insights"].append({
-                    "insight_type": "growth",
-                    "title": "Growth Mindset",
-                    "description": "Your README mentions ongoing learning, which is highly valued by employers",
-                    "evidence": ["Mentions current learning projects", "Shows curiosity", "Continuous improvement"]
-                })
         
         # Check activity level
-        if "Commits: 0" in context or "Activity Score: 0" in context or "Commits: 1" in context or "Commits: 2" in context:
+        if "Commits: 0" in context or "Activity Score: 0" in context:
             recommendations["profile_recommendations"].append({
                 "category": "GitHub Activity",
                 "priority": "high",
                 "title": "Increase Your GitHub Activity",
-                "description": "Regular contributions demonstrate commitment and keep your profile visible to recruiters and the developer community.",
+                "description": "Regular contributions demonstrate commitment and keep your profile visible.",
                 "action_items": [
                     "Commit code at least 3-4 times per week",
-                    "Contribute to open source projects in your area of expertise",
-                    "Document your learning journey through code commits",
-                    "Build a consistent contribution streak (aim for 30+ days)"
+                    "Contribute to open source projects",
+                    "Build a consistent contribution streak (30+ days)",
+                    "Document your learning journey through commits"
                 ],
                 "impact": "Higher visibility in GitHub trends and improved profile ranking"
             })
         
-        # Check repository count  
-        total_repos = 0
-        if "Total Repos:" in context:
-            try:
-                import re
-                match = re.search(r'Total Repos: (\d+)', context)
-                if match:
-                    total_repos = int(match.group(1))
-            except:
-                pass
+        # Generic insights
+        recommendations["career_insights"].append({
+            "insight_type": "growth",
+            "title": "Building Your Developer Profile",
+            "description": "Focus on consistent growth and quality contributions",
+            "evidence": ["Regular commits show dedication", "Quality documentation demonstrates professionalism"]
+        })
         
-        if total_repos < 5:
-            recommendations["profile_recommendations"].append({
-                "category": "Portfolio",
-                "priority": "high",
-                "title": "Build Your Project Portfolio",
-                "description": "A diverse portfolio of projects demonstrates your skills and problem-solving abilities to potential employers.",
-                "action_items": [
-                    "Create 5-10 public repositories showcasing different skills",
-                    "Include full-stack projects, algorithms, and tools",
-                    "Write comprehensive README files for each project",
-                    "Deploy projects and include live demo links"
-                ],
-                "impact": "Stronger technical portfolio that showcases versatile skills to employers"
-            })
-        
-        # Add generic career insights if none exist
-        if not recommendations["career_insights"]:
-            recommendations["career_insights"].append({
-                "insight_type": "growth",
-                "title": "Focus on Consistent Growth",
-                "description": "Building a strong developer profile takes time. Focus on consistent, quality contributions over quantity.",
-                "evidence": [
-                    "Regular commits show dedication",
-                    "Quality documentation demonstrates professionalism",
-                    "Diverse projects show versatility"
-                ]
-            })
-        
-        # Add skill gaps if not already populated
-        if not recommendations["skill_gaps"]:
-            recommendations["skill_gaps"] = [
-                "Docker & Containerization",
-                "Cloud Services (AWS/Azure/GCP)",
-                "CI/CD Pipelines",
-                "TypeScript",
-                "System Design"
-            ]
-        
-        # Limit to top recommendations
-        recommendations["profile_recommendations"] = recommendations["profile_recommendations"][:5]
-        recommendations["career_insights"] = recommendations["career_insights"][:3]
-        recommendations["skill_gaps"] = recommendations["skill_gaps"][:5]
+        # Default skill gaps
+        recommendations["skill_gaps"] = [
+            "Cloud Technologies (AWS/Azure/GCP)",
+            "Docker & Kubernetes",
+            "TypeScript",
+            "CI/CD Pipelines",
+            "System Design"
+        ]
         
         return recommendations
     
@@ -459,7 +391,7 @@ If there's a README, reference specific content from it in your recommendations.
                         "Add detailed project descriptions",
                         "Engage with the developer community"
                     ],
-                    "impact": "Improved profile visibility and professional networking opportunities"
+                    "impact": "Improved profile visibility and networking opportunities"
                 }
             ],
             "career_insights": [
@@ -467,7 +399,7 @@ If there's a README, reference specific content from it in your recommendations.
                     "insight_type": "growth",
                     "title": "Continue Building Your Portfolio",
                     "description": "Focus on creating quality projects that showcase your skills",
-                    "evidence": ["Active development", "Project diversity", "Code quality"]
+                    "evidence": ["Active development", "Project diversity"]
                 }
             ],
             "skill_gaps": ["Cloud Technologies", "DevOps Tools", "Modern Frameworks"]
@@ -477,7 +409,9 @@ If there's a README, reference specific content from it in your recommendations.
 # Example usage
 if __name__ == '__main__':
     # Test with sample data
-    generator = AIRecommendationGenerator()
+    import sys
+    
+    generator = GroqRecommendationGenerator()
     
     sample_github_data = {
         'profile': {
@@ -490,7 +424,7 @@ if __name__ == '__main__':
         'repositories': {
             'total_repos': 15,
             'total_stars': 30,
-            'languages': {'Python': 8, 'JavaScript': 5, 'TypeScript': 2}
+            'language_percentages': {'Python': 53.5, 'JavaScript': 30.2, 'TypeScript': 16.3}
         },
         'activity': {
             'commits': 25,
@@ -520,9 +454,16 @@ if __name__ == '__main__':
     Learning cloud technologies and DevOps practices.
     """
     
-    recommendations = generator.analyze_readme_and_generate_recommendations(
-        readme_content=sample_readme,
-        github_data=sample_github_data
-    )
-    
-    print(json.dumps(recommendations, indent=2))
+    try:
+        recommendations = generator.analyze_readme_and_generate_recommendations(
+            readme_content=sample_readme,
+            github_data=sample_github_data
+        )
+        
+        print("\n" + "="*70)
+        print("AI RECOMMENDATIONS (Groq-Powered)")
+        print("="*70)
+        print(json.dumps(recommendations, indent=2))
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)

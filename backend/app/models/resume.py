@@ -30,13 +30,66 @@ class ResumeAnalysisRequest(BaseModel):
 
 
 class ResumeEnhancementRequest(BaseModel):
-    """Request for resume enhancement"""
+    """Request for resume enhancement suggestions"""
     resume_id: int = Field(..., description="ID of uploaded resume")
     enhancement_type: str = Field(
         "full", 
         description="Type of enhancement: 'full', 'grammar', 'action_verbs', 'quantify'"
     )
     target_job: Optional[str] = Field(None, description="Target job for tailored enhancements")
+    
+    @validator('enhancement_type')
+    def validate_enhancement_type(cls, v):
+        """Validate enhancement type"""
+        allowed = ['full', 'grammar', 'action_verbs', 'quantify', 'ats_optimize']
+        if v not in allowed:
+            raise ValueError(f'Enhancement type must be one of: {", ".join(allowed)}')
+        return v
+
+
+class ResumeEnhancementDownloadRequest(BaseModel):
+    """Request for downloading enhanced resume (resume_id in URL path)"""
+    pass
+
+
+class CoverLetterRequest(BaseModel):
+    """Request for generating a cover letter"""
+    resume_id: int = Field(..., description="ID of the resume to use")
+    job_title: str = Field(..., description="Job title/position")
+    company: str = Field(..., description="Company name")
+    job_description: str = Field(..., description="Job description text")
+    tone: str = Field("professional", description="Tone: professional, enthusiastic, formal, conversational")
+    length: str = Field("medium", description="Length: short, medium, long")
+    highlights: Optional[List[str]] = Field(None, description="Specific achievements to emphasize")
+    
+    @validator('tone')
+    def validate_tone(cls, v):
+        allowed = ['professional', 'enthusiastic', 'formal', 'conversational']
+        if v not in allowed:
+            raise ValueError(f'Tone must be one of: {", ".join(allowed)}')
+        return v
+    
+    @validator('length')
+    def validate_length(cls, v):
+        allowed = ['short', 'medium', 'long']
+        if v not in allowed:
+            raise ValueError(f'Length must be one of: {", ".join(allowed)}')
+        return v
+
+
+class CoverLetterResponse(BaseModel):
+    """Response containing generated cover letter"""
+    cover_letter: str
+    word_count: int
+    sections: Dict[str, str]
+    suggestions: List[str]
+    metadata: Dict[str, Any]
+    enhancement_type: str = Field(
+        "full", 
+        description="Type of enhancement: 'full', 'grammar', 'action_verbs', 'quantify'"
+    )
+    target_job: Optional[str] = Field(None, description="Target job for tailored enhancements")
+    selected_improvements: Optional[List[str]] = Field(None, description="List of specific improvements to apply")
     
     @validator('enhancement_type')
     def validate_enhancement_type(cls, v):

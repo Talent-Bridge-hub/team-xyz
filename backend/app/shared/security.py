@@ -108,3 +108,20 @@ def validate_token_expiry(token_data: Dict[str, Any]) -> bool:
         return False
     
     return datetime.fromtimestamp(exp) > datetime.utcnow()
+
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Verify JWT token and return payload (returns None on failure)
+    
+    Args:
+        token: JWT token string
+        
+    Returns:
+        Decoded token payload or None if invalid
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except JWTError:
+        return None

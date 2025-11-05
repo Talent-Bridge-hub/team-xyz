@@ -1,176 +1,208 @@
 """
-Pydantic models for Resume API
-Request/response schemas for resume review endpoints
+Database models and queries for Resume management
+Handles direct PostgreSQL database operations for the resumes table
 """
 
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from datetime import datetime
+import json
 
 
-# ========== Request Models ==========
+# ========== Database Schema Documentation ==========
+"""
+Resumes Table Schema (PostgreSQL):
 
-class ResumeUploadResponse(BaseModel):
-    """Response after uploading a resume"""
-    resume_id: int
-    filename: str
-    file_size: int
-    file_type: str
-    parsed_text_length: int
+CREATE TABLE resumes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size INTEGER NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    parsed_text TEXT,
+    parsed_data JSONB,
+    word_count INTEGER DEFAULT 0,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_analyzed TIMESTAMP,
+    last_score FLOAT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_resumes_user_id ON resumes(user_id);
+CREATE INDEX idx_resumes_uploaded_at ON resumes(uploaded_at DESC);
+"""
+
+
+# ========== SQL Query Constants ==========
+
+class ResumeQueries:
+    """SQL queries for resume operations"""
+    
+    # Create
+    INSERT_RESUME = """
+        INSERT INTO resumes (
+            user_id, filename, file_path, file_size, file_type,
+            parsed_text, parsed_data, word_count, uploaded_at
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, user_id, filename, file_path, file_size, file_type,
+                  parsed_text, parsed_data, word_count, uploaded_at,
+                  last_analyzed, last_score
+    """
+    
+    # Read
+    SELECT_BY_ID = """
+        SELECT id, user_id, filename, file_path, file_size, file_type,
+               parsed_text, parsed_data, word_count, uploaded_at,
+               last_analyzed, last_score
+        FROM resumes
+        WHERE id = %s
+    """
+    
+    SELECT_BY_USER = """
+        SELECT id, user_id, filename, file_path, file_size, file_type,
+               parsed_text, parsed_data, word_count, uploaded_at,
+               last_analyzed, last_score
+        FROM resumes
+        WHERE user_id = %s
+        ORDER BY uploaded_at DESC
+        LIMIT %s OFFSET %s
+    """
+    
+    SELECT_BY_USER_AND_ID = """
+        SELECT id, user_id, filename, file_path, file_size, file_type,
+               parsed_text, parsed_data, word_count, uploaded_at,
+               last_analyzed, last_score
+        FROM resumes
+        WHERE id = %s AND user_id = %s
+    """
+    
+    COUNT_BY_USER = """
+        SELECT COUNT(*) as count
+        FROM resumes
+        WHERE user_id = %s
+    """
+    
+    # Update
+    UPDATE_ANALYSIS = """
+        UPDATE resumes
+        SET last_analyzed = %s, last_score = %s
+        WHERE id = %s
+        RETURNING id, user_id, filename, file_path, file_size, file_type,
+                  parsed_text, parsed_data, word_count, uploaded_at,
+                  last_analyzed, last_score
+    """
+    
+    UPDATE_RESUME = """
+        UPDATE resumes
+        SET {fields}
+        WHERE id = %s AND user_id = %s
+        RETURNING id, user_id, filename, file_path, file_size, file_type,
+                  parsed_text, parsed_data, word_count, uploaded_at,
+                  last_analyzed, last_score
+    """
+    
+    # Delete
+    DELETE_RESUME = """
+        DELETE FROM resumes
+        WHERE id = %s AND user_id = %s
+    """
+    
+    # Check existence
+    CHECK_RESUME_EXISTS = """
+        SELECT EXISTS(
+            SELECT 1 FROM resumes
+            WHERE id = %s AND user_id = %s
+        ) as exists
+    """
+
+
+# ========== Database Row Converters ==========
+
+def resume_row_to_dict(row: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert database row to dictionary
+    Handles JSONB parsing for parsed_data field
+    """
+    if not row:
+        return None
+    
+    # Parse JSONB field if it's a string
+    parsed_data = row.get('parsed_data')
+    if isinstance(parsed_data, str):
+        try:
+            parsed_data = json.loads(parsed_data)
+        except:
+            parsed_data = {}
+    
+    return {
+        'id': row.get('id'),
+        'user_id': row.get('user_id'),
+        'filename': row.get('filename'),
+        'file_path': row.get('file_path'),
+        'file_size': row.get('file_size'),
+        'file_type': row.get('file_type'),
+        'parsed_text': row.get('parsed_text'),
+        'parsed_data': parsed_data,
+        'word_count': row.get('word_count', 0),
+        'uploaded_at': row.get('uploaded_at'),
+        'last_analyzed': row.get('last_analyzed'),
+        'last_score': row.get('last_score')
+    }
+
+
+def resume_row_to_list_item(row: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert database row to list item format (minimal fields)
+    """
+    if not row:
+        return None
+    
+    return {
+        'resume_id': row.get('id'),
+        'filename': row.get('filename'),
+        'uploaded_at': row.get('uploaded_at'),
+        'last_analyzed': row.get('last_analyzed'),
+        'last_score': row.get('last_score'),
+        'word_count': row.get('word_count', 0),
+        'file_type': row.get('file_type')
+    }
+
+
+def prepare_resume_data(
+    user_id: int,
+    filename: str,
+    file_path: str,
+    file_size: int,
+    file_type: str,
+    parsed_text: str,
+    parsed_data: Dict[str, Any],
     word_count: int
-    uploaded_at: datetime
-    message: str = "Resume uploaded and parsed successfully"
-
-
-class ResumeAnalysisRequest(BaseModel):
-    """Request for resume analysis"""
-    resume_id: int = Field(..., description="ID of uploaded resume")
-    job_title: Optional[str] = Field(None, description="Target job title for optimization")
-    job_description: Optional[str] = Field(None, description="Job description to match against")
-
-
-class ResumeEnhancementRequest(BaseModel):
-    """Request for resume enhancement"""
-    resume_id: int = Field(..., description="ID of uploaded resume")
-    enhancement_type: str = Field(
-        "full", 
-        description="Type of enhancement: 'full', 'grammar', 'action_verbs', 'quantify'"
+) -> tuple:
+    """
+    Prepare resume data for insertion
+    Returns tuple ready for SQL INSERT
+    """
+    # Convert parsed_data dict to JSON string for JSONB field
+    parsed_data_json = json.dumps(parsed_data) if parsed_data else '{}'
+    
+    return (
+        user_id,
+        filename,
+        file_path,
+        file_size,
+        file_type,
+        parsed_text,
+        parsed_data_json,
+        word_count,
+        datetime.utcnow()
     )
-    target_job: Optional[str] = Field(None, description="Target job for tailored enhancements")
-    
-    @validator('enhancement_type')
-    def validate_enhancement_type(cls, v):
-        """Validate enhancement type"""
-        allowed = ['full', 'grammar', 'action_verbs', 'quantify', 'ats_optimize']
-        if v not in allowed:
-            raise ValueError(f'Enhancement type must be one of: {", ".join(allowed)}')
-        return v
 
 
-# ========== Response Models ==========
+def prepare_analysis_update(resume_id: int, score: float) -> tuple:
+    """
+    Prepare data for updating analysis results
+    Returns tuple ready for SQL UPDATE
+    """
+    return (datetime.utcnow(), score, resume_id)
 
-class SectionScore(BaseModel):
-    """Score for a resume section"""
-    section_name: str
-    score: float = Field(..., ge=0, le=100)
-    feedback: str
-    issues: List[str] = []
-    suggestions: List[str] = []
-
-
-class ATSScore(BaseModel):
-    """ATS (Applicant Tracking System) compatibility score"""
-    overall_score: float = Field(..., ge=0, le=100)
-    keyword_score: float = Field(..., ge=0, le=100)
-    format_score: float = Field(..., ge=0, le=100)
-    content_score: float = Field(..., ge=0, le=100)
-    matched_keywords: List[str] = []
-    missing_keywords: List[str] = []
-    strengths: List[str] = []
-    weaknesses: List[str] = []
-
-
-class ResumeAnalysisResponse(BaseModel):
-    """Complete resume analysis response"""
-    resume_id: int
-    overall_score: float = Field(..., ge=0, le=100)
-    skill_match_score: float = Field(default=75.0, ge=0, le=100)
-    experience_score: float = Field(default=75.0, ge=0, le=100)
-    education_score: float = Field(default=75.0, ge=0, le=100)
-    grade: str  # A+, A, B+, B, C+, C, D, F
-    ats_score: ATSScore
-    section_scores: List[SectionScore]
-    
-    # Key findings
-    strengths: List[str]
-    weaknesses: List[str]
-    critical_issues: List[str]
-    recommendations: List[str]
-    improvement_suggestions: List[str] = []  # Alias for recommendations
-    
-    # Detailed metrics
-    word_count: int
-    action_verb_count: int
-    quantified_achievements: int
-    spelling_errors: int
-    formatting_issues: int
-    
-    # Metadata
-    analyzed_at: datetime
-    analysis_duration_ms: int
-
-
-class EnhancementSuggestion(BaseModel):
-    """A single enhancement suggestion"""
-    section: str
-    original_text: str
-    enhanced_text: str
-    improvement_type: str  # 'action_verb', 'quantification', 'grammar', 'tone', 'ats'
-    impact: str  # 'high', 'medium', 'low'
-    explanation: str
-
-
-class ResumeEnhancementResponse(BaseModel):
-    """Resume enhancement suggestions response"""
-    resume_id: int
-    enhancement_type: str
-    suggestions: List[EnhancementSuggestion]
-    
-    # Summary
-    total_suggestions: int
-    high_impact_count: int
-    medium_impact_count: int
-    low_impact_count: int
-    
-    # Estimated improvement
-    estimated_score_improvement: float = Field(..., description="Estimated score increase if applied")
-    
-    # Metadata
-    enhanced_at: datetime
-
-
-class ResumeListItem(BaseModel):
-    """Resume item in list view"""
-    resume_id: int
-    filename: str
-    uploaded_at: datetime
-    last_analyzed: Optional[datetime]
-    last_score: Optional[float]
-    word_count: int
-    file_type: str
-
-
-class ResumeListResponse(BaseModel):
-    """List of user's resumes"""
-    resumes: List[ResumeListItem]
-    total: int
-    page: int
-    page_size: int
-
-
-class ResumeDeleteResponse(BaseModel):
-    """Response after deleting a resume"""
-    message: str
-    success: bool = True
-    resume_id: int
-
-
-# ========== Database Models (Internal) ==========
-
-class ResumeInDB(BaseModel):
-    """Resume as stored in database"""
-    id: int
-    user_id: int
-    filename: str
-    file_path: str
-    file_size: int
-    file_type: str
-    parsed_text: str
-    parsed_data: Optional[Dict[str, Any]]  # JSON field with sections, metadata
-    word_count: int
-    uploaded_at: datetime
-    last_analyzed: Optional[datetime]
-    last_score: Optional[float]
-    
-    class Config:
-        from_attributes = True

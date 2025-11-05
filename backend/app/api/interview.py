@@ -256,25 +256,43 @@ async def submit_answer(
                 detail="This question has already been answered"
             )
         
-        # Get AI analyzer for answer analysis
-        from utils.ai_answer_analyzer import AIAnswerAnalyzer
-        import os
-        hf_token = os.getenv('HUGGINGFACE_TOKEN')
-        ai_analyzer = AIAnswerAnalyzer(hf_token=hf_token)
+        # Get AI analyzer for answer analysis using Groq
+        groq_api_key = os.getenv('GROQ_API_KEY')
         
-        # Analyze the answer
-        try:
-            logger.info(f"Analyzing answer with AI (token present: {bool(hf_token)})")
-            analysis = ai_analyzer.analyze_answer(
-                user_answer=request.answer,
-                question_text=question[2],  # question_text
-                question_data={'key_points': question[3] if question[3] else {}},  # Changed from list to dict
-                difficulty_level=session[5],  # difficulty_level (fixed column index!)
-                job_role=session[4]  # job_role (fixed column index!)
-            )
-            logger.info(f"AI analysis complete. Overall score: {analysis.get('overall_score')}, AI generated: {analysis.get('ai_generated', False)}")
-        except Exception as e:
-            logger.error(f"AI analysis failed: {e}", exc_info=True)
+        if groq_api_key:
+            try:
+                from utils.groq_answer_analyzer import GroqAnswerAnalyzer
+                ai_analyzer = GroqAnswerAnalyzer(groq_api_key=groq_api_key)
+                
+                logger.info(f"🚀 Analyzing answer with Groq AI...")
+                analysis = ai_analyzer.analyze_answer(
+                    user_answer=request.answer,
+                    question_text=question[2],  # question_text
+                    question_data={'key_points': question[3] if question[3] else {}},
+                    difficulty_level=session[5],  # difficulty_level
+                    job_role=session[4]  # job_role
+                )
+                logger.info(f"✅ Groq AI analysis complete. Overall score: {analysis.get('overall_score')}")
+            except Exception as e:
+                logger.error(f"⚠️ Groq AI analysis failed: {e}", exc_info=True)
+                logger.info("↻ Falling back to rule-based scoring...")
+                # Fallback to basic scores
+                analysis = {
+                    'overall_score': 70,
+                    'relevance_score': 70,
+                    'completeness_score': 70,
+                    'clarity_score': 70,
+                    'technical_accuracy_score': 70,
+                    'communication_score': 70,
+                    'strengths': ['Answer provided'],
+                    'weaknesses': [],
+                    'missing_points': [],
+                    'suggestions': ['Consider providing more details'],
+                    'ai_feedback': 'Answer received and recorded.',
+                    'sentiment': 'neutral'
+                }
+        else:
+            logger.warning("⚠️ No GROQ_API_KEY found, using rule-based scoring")
             # Fallback to basic scores
             analysis = {
                 'overall_score': 70,

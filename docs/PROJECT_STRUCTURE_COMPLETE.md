@@ -1,7 +1,7 @@
 # UtopiaHire - Complete Project Structure
 
-> **Generated:** November 3, 2025  
-> **Version:** 2.0 (Verified & Corrected)  
+> **Generated:** November 4, 2025  
+> **Version:** 3.0 (Updated with Job Compatibility Feature)  
 > **Description:** Complete file and folder structure of the UtopiaHire platform
 
 ---
@@ -16,24 +16,26 @@
 6. [Configuration](#configuration)
 7. [Data & Assets](#data--assets)
 8. [Documentation](#documentation)
-9. [File Count Summary](#file-count-summary)
+9. [Tests](#tests)
+10. [File Count Summary](#file-count-summary)
 
 ---
 
 ## Project Overview
 
-**UtopiaHire** is a comprehensive AI-powered career platform with 5 core modules:
+**UtopiaHire** is a comprehensive AI-powered career platform with 6 core modules:
 - **Module 1:** Authentication & User Management
 - **Module 2:** Job Matching & Recommendations
 - **Module 3:** AI Interview Simulator
 - **Module 4:** Digital Footprint Scanner
 - **Module 5:** Resume Analyzer & Enhancer
+- **Module 6:** Job Compatibility Analyzer (NEW)
 
 **Tech Stack:**
 - **Backend:** Python 3.12, FastAPI, PostgreSQL
 - **Frontend:** React 18, TypeScript, Vite, TailwindCSS
-- **AI/ML:** HuggingFace (Zephyr-7b-beta, Mistral), spaCy NLP
-- **APIs:** GitHub API, StackOverflow API
+- **AI/ML:** Groq API (llama-3.3-70b-versatile), HuggingFace (Zephyr-7b-beta, Mistral), spaCy NLP
+- **APIs:** GitHub API, StackOverflow API, Groq API
 
 ---
 
@@ -42,6 +44,8 @@
 ```
 Utopia/
 ├── .env                                    # Environment variables (API keys, DB credentials)
+├── .gitignore                              # Git ignore rules (includes tests/ folder)
+├── README.md                               # Main project README
 ├── requirements.txt                        # Python dependencies
 ├── install_dependencies.sh                 # Automated dependency installation
 │
@@ -49,20 +53,48 @@ Utopia/
 ├── populate_jobs_comprehensive.py          # Populate database with jobs
 ├── quick_populate_jobs.py                  # Quick job population script
 │
-├── test_add_jobs.py                        # Test job addition
-├── test_ai_integration.py                  # Test AI integration
-├── test_delete.py                          # Test delete functionality
-├── test_enhancement_download.py            # Test resume enhancement download
-├── test_hf_token.py                        # Test HuggingFace token
-├── test_interview_endpoint.py              # Test interview endpoint
-├── test_job_matcher.py                     # Test job matcher
+├── backend/                                # Backend API server
+├── frontend/                               # React frontend application
+├── utils/                                  # Utility scripts
+├── config/                                 # Configuration files
+├── data/                                   # Data storage
+├── logs/                                   # Log files
 │
-└── Documentation Files (2 .md files)
-    ├── PROJECT_COMPLETE.md                   # Complete project summary
-    └── PROJECT_STRUCTURE_COMPLETE.md         # This file
+├── tests/                                  # All test files (ignored by git)
+│   ├── test_add_jobs.py
+│   ├── test_ai_integration.py
+│   ├── test_analyzer.py
+│   ├── test_api.py
+│   ├── test_auth.py
+│   ├── test_delete.py
+│   ├── test_enhancement_download.py
+│   ├── test_footprint.py
+│   ├── test_groq_interview.py
+│   ├── test_groq_recommendations.py
+│   ├── test_hf_token.py
+│   ├── test_interview_endpoint.py
+│   ├── test_job_compatibility.py           # NEW - Test job compatibility analyzer
+│   ├── test_job_matcher.py
+│   ├── test_jobs.py
+│   └── test_resume.py
+│
+└── docs/                                   # Documentation (13+ markdown files)
+    ├── AI_MIGRATION_COMPLETE.md
+    ├── ALL_ERRORS_FIXED.md
+    ├── ARCHITECTURE.md
+    ├── DEPLOYMENT.md
+    ├── ERROR_FIXES.md
+    ├── FOOTPRINT_MODULE_DOCUMENTATION.md
+    ├── JOBS_UI_COMPLETE.md
+    ├── JOB_COMPATIBILITY_FEATURE.md        # NEW - Job compatibility docs
+    ├── MIGRATION_GUIDE.md
+    ├── PROJECT_COMPLETE.md
+    ├── PROJECT_STRUCTURE_COMPLETE.md       # This file
+    ├── STATUS_REPORT.md
+    └── WEB_PROGRESS_REPORT_2.md
 ```
 
-**Note:** Historical documentation files have been removed/consolidated. Only 2 markdown files remain in root.
+**Note:** All test files have been moved to `tests/` folder (ignored by git). All documentation is now in `docs/` folder.
 
 ---
 
@@ -132,6 +164,7 @@ backend/
 | **Resume** | `/api/resume/enhance` | POST | Enhance resume content |
 | **Resume** | `/api/resume/download-template` | GET | Download resume template |
 | **Jobs** | `/api/jobs/match` | POST | Match jobs to resume |
+| **Jobs** | `/api/v1/jobs/compatibility` | POST | Analyze job compatibility (NEW) |
 | **Jobs** | `/api/jobs/` | GET | List all jobs (with filters) |
 | **Jobs** | `/api/jobs/{id}` | GET | Get job details |
 | **Jobs** | `/api/jobs/{id}` | DELETE | Delete job posting |
@@ -299,6 +332,7 @@ utils/
 ├── footprint_calculator.py                 # Calculate footprint scores
 ├── github_analyzer.py                      # GitHub profile analyzer
 ├── interview_simulator.py                  # Interview simulation engine
+├── job_compatibility_analyzer.py           # AI job compatibility analyzer (NEW)
 ├── job_matcher.py                          # Job matching algorithm
 ├── job_scraper.py                          # Job scraping utilities
 ├── resume_analyzer.py                      # Resume content analyzer
@@ -319,6 +353,7 @@ utils/
 | `footprint_calculator.py` | `FootprintCalculator` | Calculates technical, social, impact scores |
 | `github_analyzer.py` | `GitHubAnalyzer` | Fetches GitHub stats, repos, README |
 | `interview_simulator.py` | `InterviewSimulator` | Manages interview sessions and questions |
+| `job_compatibility_analyzer.py` | `JobCompatibilityAnalyzer` | AI job/resume compatibility using Groq API (NEW) |
 | `job_matcher.py` | `JobMatcher` | Matches resumes to job postings |
 | `job_scraper.py` | `JobScraper` | Scrapes jobs from external APIs |
 | `resume_analyzer.py` | `ResumeAnalyzer` | Extracts skills, experience, education |
@@ -448,23 +483,68 @@ models/                                     # Empty directory (models in backend
 
 ---
 
+## Tests
+
+All test files are now organized in the `tests/` folder and excluded from git tracking:
+
+```
+tests/
+├── test_add_jobs.py                        # Test job addition functionality
+├── test_ai_integration.py                  # Test AI integration
+├── test_analyzer.py                        # Test resume analyzer
+├── test_api.py                             # Test backend API endpoints
+├── test_auth.py                            # Test authentication system
+├── test_delete.py                          # Test delete operations
+├── test_enhancement_download.py            # Test resume enhancement download
+├── test_footprint.py                       # Test footprint scanner
+├── test_groq_interview.py                  # Test Groq interview integration
+├── test_groq_recommendations.py            # Test Groq recommendations
+├── test_hf_token.py                        # Test HuggingFace token
+├── test_interview_endpoint.py              # Test interview endpoints
+├── test_job_compatibility.py               # Test job compatibility analyzer (NEW)
+├── test_job_matcher.py                     # Test job matcher
+├── test_jobs.py                            # Test jobs API
+└── test_resume.py                          # Test resume API
+```
+
+**Running Tests:**
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test
+python tests/test_job_compatibility.py
+```
+
+---
+
 ## Environment Variables
 
 ### Root `.env`
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/utopiahire
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=utopiahire
+DB_USER=utopia_user
+DB_PASSWORD=utopia_secure_2025
 
-# API Keys
-HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxx
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
+# AI/ML API Keys
+GROQ_API_KEY=gsk_xxxxxxxxxxxxx              # NEW - For job compatibility analysis
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxx              # For footprint scanner
 
 # Security
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# External APIs
+# Application Settings
+APP_NAME=UtopiaHire
+APP_VERSION=1.0.0
+DEBUG=true
+LOG_LEVEL=INFO
+
+# External APIs (Optional)
 STACKOVERFLOW_API_KEY=optional
 ```
 
@@ -476,22 +556,22 @@ VITE_APP_NAME=UtopiaHire
 
 ---
 
-## File Count Summary (Actual - Verified November 3, 2025)
+## File Count Summary (Updated - November 4, 2025)
 
 | Category | Count | Description |
 |----------|-------|-------------|
 | **Backend Python Files** | 23 | API endpoints, models, core logic, migrations |
-| **Frontend TypeScript/TSX Files** | 43 | Components, pages, services, contexts (including I18nContext) |
-| **Utility Scripts** | 14 | Resume parser, job matcher, AI analyzers |
+| **Frontend TypeScript/TSX Files** | 44 | Components, pages, services (including JobCompatibilityAnalyzer) |
+| **Utility Scripts** | 15 | Resume parser, job matcher, AI analyzers (including job_compatibility_analyzer) |
 | **Configuration Files** | 13 | Database, API, build configs (Vite, Tailwind, TypeScript) |
-| **Documentation Files** | 9 | Markdown files (2 in root, 7 in docs/) |
-| **Test Scripts** | 7 | Python test scripts (*.py only) |
+| **Documentation Files** | 20 | Markdown files (1 README, 13 in docs/, 6 in backend/frontend) |
+| **Test Scripts** | 16 | Python test scripts in tests/ folder (ignored by git) |
 | **Data Files** | 20+ | Resumes, templates, scraped jobs |
 | **SQL Files** | 4 | Database schemas |
 | **Shell Scripts** | 1 | install_dependencies.sh |
 | **CSS Files** | 3 | App.css, index.css, JobChromaGrid.css |
 | **HTML Files** | 1 | index.html |
-| **Total Source Files** | ~160 | Excluding node_modules, venv, __pycache__, .git |
+| **Total Source Files** | ~180 | Excluding node_modules, venv, __pycache__, .git, tests/ |
 
 ---
 
@@ -513,6 +593,7 @@ VITE_APP_NAME=UtopiaHire
 - **Axios** - HTTP client
 
 ### Utils (`/utils`)
+- **Groq API** - llama-3.3-70b-versatile for job compatibility (NEW)
 - **spaCy** - NLP processing
 - **HuggingFace** - AI models
 - **PyPDF2** - PDF parsing
@@ -606,237 +687,319 @@ build/                                      # Build artifacts
 - **Utils:** `utils/resume_parser.py`, `utils/resume_analyzer.py`, `utils/resume_enhancer.py`, `utils/resume_templates.py`
 - **Database:** `config/schema.sql` (resumes table)
 
+### Module 6: Job Compatibility Analyzer (NEW - November 4, 2025)
+- **Backend:** `backend/app/api/jobs.py` (compatibility endpoint), `backend/app/models/job.py` (JobCompatibilityRequest/Response)
+- **Frontend:** `frontend/src/components/jobs/JobCompatibilityAnalyzer.tsx`
+- **Utils:** `utils/job_compatibility_analyzer.py` (447 lines)
+- **AI:** Groq API (llama-3.3-70b-versatile model)
+- **Features:** 
+  - AI-powered compatibility analysis
+  - Skill matching with fuzzy logic
+  - Experience relevance evaluation
+  - Education assessment
+  - Personalized recommendations
+  - AI-generated detailed feedback
+- **Scoring:** Overall = Skills(50%) + Experience(35%) + Education(15%)
+
 ---
 
 ## Complete File Tree
 
 ```
 Utopia/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── __init__.py
-│   │   │   ├── auth.py
-│   │   │   ├── deps.py
-│   │   │   ├── footprint.py
-│   │   │   ├── interview.py
-│   │   │   ├── jobs.py
-│   │   │   └── resume.py
-│   │   ├── core/
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py
-│   │   │   ├── database.py
-│   │   │   └── security.py
-│   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── footprint.py
-│   │   │   ├── interview.py
-│   │   │   ├── job.py
-│   │   │   ├── resume.py
-│   │   │   └── user.py
+├── .env                                    # Environment variables (API keys, DB)
+├── .env.production                         # Production environment config
+├── .git/                                   # Git repository
+├── .gitignore                              # Git ignore rules
+├── .pytest_cache/                          # Pytest cache directory
+├── README.md                               # Main project README
+├── install_dependencies.sh                 # Dependency installation script
+├── requirements.txt                        # Python dependencies
+│
+├── backend/                                # Backend API server
+│   ├── __init__.py                         # Backend package initializer
+│   ├── __pycache__/                        # Python bytecode cache
+│   ├── start.sh                            # Backend startup script
+│   ├── uvicorn.log                         # Uvicorn server logs
+│   │
+│   ├── app/                                # Main application
 │   │   ├── __init__.py
-│   │   └── main.py
-│   ├── database/
-│   │   └── interview_question_bank.sql
-│   ├── migrations/
-│   │   ├── create_footprint_tables.py
-│   │   ├── create_interview_tables.py
-│   │   ├── create_jobs_table.py
-│   │   └── create_resumes_table.py
-│   ├── API_ARCHITECTURE.md
-│   ├── AUTH_SYSTEM_COMPLETE.md
-│   ├── MODULE_1_COMPLETE.md
-│   ├── MODULE_2_COMPLETE.md
-│   ├── MODULE_3_COMPLETE.md
-│   ├── WEB_PROGRESS_REPORT_1.md
-│   ├── WEB_PROGRESS_REPORT_2.md
-│   ├── __init__.py
-│   ├── requirements.txt
-│   ├── start.sh
-│   └── test_api.py
+│   │   ├── __pycache__/
+│   │   ├── main.py                         # FastAPI entry point
+│   │   │
+│   │   ├── api/                            # API endpoints
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   ├── auth.py                     # Authentication (login, register)
+│   │   │   ├── deps.py                     # Dependency injection
+│   │   │   ├── footprint.py                # Footprint scanner endpoints
+│   │   │   ├── interview.py                # Interview simulator endpoints
+│   │   │   ├── jobs.py                     # Job matching/compatibility endpoints
+│   │   │   └── resume.py                   # Resume analyzer/cover letter endpoints
+│   │   │
+│   │   ├── core/                           # Core functionality
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   ├── config.py                   # Configuration settings
+│   │   │   ├── config.py.bak               # Config backup
+│   │   │   ├── database.py                 # Database connection
+│   │   │   ├── events.py                   # Application events
+│   │   │   └── security.py                 # JWT, password hashing
+│   │   │
+│   │   ├── models/                         # Pydantic data models
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   ├── footprint.py                # Footprint models
+│   │   │   ├── interview.py                # Interview models
+│   │   │   ├── job.py                      # Job models
+│   │   │   ├── resume.py                   # Resume/CoverLetter models
+│   │   │   └── user.py                     # User models
+│   │   │
+│   │   ├── modules/                        # Modular features
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__/
+│   │   │   │
+│   │   │   ├── auth/                       # Auth module
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__/
+│   │   │   │   ├── dependencies.py
+│   │   │   │   ├── models.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   └── service.py
+│   │   │   │
+│   │   │   ├── footprint/                  # Footprint module
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── models.py
+│   │   │   │   └── router.py
+│   │   │   │
+│   │   │   ├── interview/                  # Interview module
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── models.py
+│   │   │   │   └── router.py
+│   │   │   │
+│   │   │   ├── jobs/                       # Jobs module
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── matcher.py
+│   │   │   │   ├── models.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   ├── scraper.py
+│   │   │   │   └── service.py
+│   │   │   │
+│   │   │   └── resume/                     # Resume module
+│   │   │       ├── __init__.py
+│   │   │       ├── __pycache__/
+│   │   │       ├── models.py
+│   │   │       ├── router.py
+│   │   │       ├── schemas.py
+│   │   │       ├── service.py
+│   │   │       └── utils.py
+│   │   │
+│   │   └── shared/                         # Shared utilities
+│   │       ├── __init__.py
+│   │       ├── __pycache__/
+│   │       ├── database.py
+│   │       ├── dependencies.py
+│   │       └── security.py
+│   │
+│   ├── database/                           # Database scripts
+│   │   └── interview_question_bank.sql     # Interview questions seed data
+│   │
+│   └── migrations/                         # Database migrations
+│       ├── create_footprint_tables.py
+│       ├── create_interview_tables.py
+│       ├── create_jobs_table.py
+│       └── create_resumes_table.py
 │
-├── cli/
-│   └── utopiahire.py
+├── config/                                 # Configuration files
+│   ├── __pycache__/
+│   ├── database.py                         # Database config
+│   ├── footprint_schema.sql                # Footprint SQL schema
+│   ├── interview_schema.sql                # Interview SQL schema
+│   ├── job_apis.py                         # Job API configurations
+│   └── schema.sql                          # Main database schema
 │
-├── config/
-│   ├── database.py
-│   ├── footprint_schema.sql
-│   ├── interview_schema.sql
-│   ├── job_apis.py
-│   └── schema.sql
+├── data/                                   # Data storage
+│   ├── outputs/                            # Generated outputs
+│   ├── resumes/                            # Uploaded resumes
+│   └── scraped_jobs/                       # Scraped job data
 │
-├── data/
-│   ├── outputs/
-│   │   ├── sample_resume_analysis_20251014_153141.json
-│   │   └── sample_resume_enhanced_20251014_153141.txt
-│   ├── resumes/
-│   │   ├── templates/
-│   │   │   ├── resume_template_Entry-Level_Student_20251015_213500.docx
-│   │   │   ├── resume_template_Entry-Level_Student_20251015_213520.docx
-│   │   │   ├── resume_template_Entry-Level___Student_20251015_212903.pdf
-│   │   │   ├── resume_template_Entry-Level___Student_20251015_212926.pdf
-│   │   │   ├── resume_template_Entry-Level___Student_20251015_212935.pdf
-│   │   │   ├── resume_template_Entry-Level___Student_20251015_212953.pdf
-│   │   │   ├── resume_template_Modern_Skills-Focused_20251015_210443.pdf
-│   │   │   ├── resume_template_Modern_Skills-Focused_20251015_212935.pdf
-│   │   │   ├── resume_template_Modern_Skills-Focused_20251015_213520.docx
-│   │   │   ├── resume_template_Professional_Chronological_20251015_210432.pdf
-│   │   │   ├── resume_template_Professional_Chronological_20251015_212935.pdf
-│   │   │   ├── resume_template_Professional_Chronological_20251015_213520.docx
-│   │   │   ├── resume_template_Professional_Chronological_20251015_213619.docx
-│   │   │   ├── resume_template_Professional_Chronological_20251015_213736.docx
-│   │   │   ├── resume_template_Professional_Chronological_20251017_084410.docx
-│   │   │   └── test_entry.pdf
-│   │   ├── 10_20251015_192853_CS & CN & Cyber Challenge.pdf
-│   │   ├── 10_20251015_200600_cv-template.pdf
-│   │   ├── 10_20251017_213046_cv-template-4.pdf
-│   │   ├── 7_20251014_210623_test_resume.docx
-│   │   ├── 7_20251014_210725_test_resume.docx
-│   │   └── sample_resume.pdf
-│   └── scraped_jobs/
-│       └── jobs_20251014_165323.json
+├── docs/                                   # Documentation
+│   ├── FRONTEND_UX_ENHANCEMENTS.md         # UX enhancement plan
+│   ├── PROJECT_COMPLETE.md                 # Project completion status
+│   ├── PROJECT_STRUCTURE_COMPLETE.md       # This file
+│   └── PROJECT_STRUCTURE_COMPLETE_v2.md.bak # Backup
 │
-├── docs/
-│   ├── API_KEY_SETUP.md
-│   ├── FRONTEND_INTEGRATION.md
-│   ├── MODULE_2_JOB_MATCHER.md
-│   ├── MODULE_3_AI_INTERVIEWER.md
-│   ├── MODULE_4_FOOTPRINT_SCANNER.md
-│   ├── REAL_JOB_SCRAPING.md
-│   └── REAL_JOB_SCRAPING_PLAN.md
-│
-├── frontend/
-│   ├── .vscode/
-│   │   ├── extensions.json
-│   │   └── settings.json
-│   ├── public/
-│   │   └── vite.svg
-│   ├── src/
-│   │   ├── assets/
-│   │   │   └── react.svg
-│   │   ├── components/
-│   │   │   ├── auth/
-│   │   │   ├── common/
-│   │   │   │   └── ProtectedRoute.tsx
-│   │   │   ├── footprint/
-│   │   │   │   ├── ActivityChart.tsx
-│   │   │   │   ├── FootprintScanForm.tsx
-│   │   │   │   ├── GitHubContributionGraph.tsx
-│   │   │   │   ├── RecommendationsList.tsx
-│   │   │   │   └── ScoreGauge.tsx
-│   │   │   ├── interview/
-│   │   │   │   ├── InterviewChat.tsx
-│   │   │   │   ├── InterviewHistory.tsx
-│   │   │   │   └── InterviewSetup.tsx
-│   │   │   ├── jobs/
-│   │   │   │   ├── JobCard.tsx
-│   │   │   │   ├── JobChromaGrid.css
-│   │   │   │   ├── JobChromaGrid.tsx
-│   │   │   │   ├── JobDetailModal.tsx
-│   │   │   │   ├── JobList.tsx
-│   │   │   │   └── JobMatcher.tsx
-│   │   │   ├── layout/
-│   │   │   │   └── DashboardLayout.tsx
-│   │   │   ├── menu/
-│   │   │   └── resume/
-│   │   │       ├── ResumeAnalysisView.tsx
-│   │   │       ├── ResumeEnhancement.tsx
-│   │   │       ├── ResumeList.tsx
-│   │   │       ├── ResumeTemplatesModal.tsx
-│   │   │       └── ResumeUploadForm.tsx
-│   │   ├── contexts/
-│   │   │   └── AuthContext.tsx
-│   │   ├── hooks/
-│   │   ├── i18n/
-│   │   │   └── I18nContext.tsx
-│   │   ├── pages/
-│   │   │   ├── auth/
-│   │   │   │   ├── LoginPage.tsx
-│   │   │   │   └── RegisterPage.tsx
-│   │   │   ├── dashboard/
-│   │   │   │   ├── DashboardHome.tsx
-│   │   │   │   ├── DashboardPage.tsx
-│   │   │   │   └── index.ts
-│   │   │   ├── footprint/
-│   │   │   │   ├── FootprintPage.tsx
-│   │   │   │   └── index.ts
-│   │   │   ├── interview/
-│   │   │   │   └── index.tsx
-│   │   │   ├── jobs/
-│   │   │   │   └── index.tsx
-│   │   │   └── resume/
-│   │   │       ├── ResumePage.tsx
-│   │   │       └── index.ts
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   │   ├── api-client.ts
-│   │   │   ├── auth.service.ts
-│   │   │   ├── interview.service.ts
-│   │   │   ├── jobs.service.ts
-│   │   │   └── resume.service.ts
-│   │   ├── types/
-│   │   │   └── api.ts
-│   │   ├── utils/
-│   │   ├── App.css
-│   │   ├── App.tsx
-│   │   ├── index.css
-│   │   ├── main.tsx
-│   │   └── vite-env.d.ts
-│   ├── .env
+├── frontend/                               # React frontend
 │   ├── .gitignore
-│   ├── ALL_ERRORS_FIXED.md
-│   ├── ERROR_FIXES.md
-│   ├── JOBS_UI_COMPLETE.md
+│   ├── .vscode/                            # VS Code settings
 │   ├── README.md
-│   ├── STATUS_REPORT.md
-│   ├── eslint.config.js
-│   ├── index.html
+│   ├── eslint.config.js                    # ESLint config
+│   ├── index.html                          # HTML entry point
+│   ├── node_modules/                       # Node dependencies
 │   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.js
-│   ├── tailwind.config.js
-│   ├── tsconfig.app.json
-│   ├── tsconfig.json
-│   ├── tsconfig.node.json
-│   └── vite.config.ts
+│   ├── package.json                        # NPM dependencies
+│   ├── postcss.config.js                   # PostCSS config
+│   ├── tailwind.config.js                  # Tailwind CSS config
+│   ├── tsconfig.app.json                   # TS app config
+│   ├── tsconfig.json                       # TS base config
+│   ├── tsconfig.node.json                  # TS node config
+│   ├── vite.config.ts                      # Vite bundler config
+│   │
+│   ├── public/                             # Static assets
+│   │   └── vite.svg
+│   │
+│   └── src/                                # Source code
+│       ├── App.css                         # App styles
+│       ├── App.tsx                         # Root component
+│       ├── index.css                       # Global CSS (Tailwind)
+│       ├── main.tsx                        # Entry point
+│       ├── vite-env.d.ts                   # Vite types
+│       │
+│       ├── assets/                         # Images/icons
+│       │   └── react.svg
+│       │
+│       ├── components/                     # React components
+│       │   ├── auth/                       # Auth components (empty)
+│       │   │
+│       │   ├── common/                     # Shared components
+│       │   │   ├── LoadingComponents.tsx   # Loading spinners/states
+│       │   │   ├── ProtectedRoute.tsx      # Route authentication
+│       │   │   ├── Skeleton.tsx            # Skeleton loaders
+│       │   │   └── ThemeToggle.tsx         # Dark mode toggle
+│       │   │
+│       │   ├── footprint/                  # Footprint components
+│       │   │   ├── ActivityChart.tsx       # Activity visualization
+│       │   │   ├── FootprintScanForm.tsx   # Scan input form
+│       │   │   ├── GitHubContributionGraph.tsx # Contribution heatmap
+│       │   │   ├── RecommendationsList.tsx # AI recommendations
+│       │   │   └── ScoreGauge.tsx          # Score gauge
+│       │   │
+│       │   ├── interview/                  # Interview components
+│       │   │   ├── InterviewChat.tsx       # Chat interface
+│       │   │   ├── InterviewHistory.tsx    # Interview history
+│       │   │   ├── InterviewSetup.old.tsx  # Old setup (backup)
+│       │   │   └── InterviewSetup.tsx      # Interview config
+│       │   │
+│       │   ├── jobs/                       # Job components
+│       │   │   ├── JobCard.tsx             # Job card
+│       │   │   ├── JobChromaGrid.css       # Chroma grid styles
+│       │   │   ├── JobChromaGrid.tsx       # Animated job grid
+│       │   │   ├── JobCompatibilityAnalyzer.tsx # AI compatibility (NEW)
+│       │   │   ├── JobCompatibilityAnalyzer.tsx.bak # Backup
+│       │   │   ├── JobDetailModal.tsx      # Job details modal
+│       │   │   ├── JobList.tsx             # Jobs list
+│       │   │   └── JobMatcher.tsx          # Job matcher
+│       │   │
+│       │   ├── layout/                     # Layout components
+│       │   │   └── DashboardLayout.tsx     # Dashboard layout
+│       │   │
+│       │   ├── menu/                       # Menu components (empty)
+│       │   │
+│       │   └── resume/                     # Resume components
+│       │       ├── CoverLetterGenerator.tsx # AI cover letter (NEW)
+│       │       ├── ResumeAnalysisView.tsx  # Analysis display
+│       │       ├── ResumeEnhancement.tsx   # Enhancement UI
+│       │       ├── ResumeList.tsx          # Resume list
+│       │       ├── ResumeTemplatesModal.tsx # Template selector
+│       │       └── ResumeUploadForm.tsx    # Upload form
+│       │
+│       ├── contexts/                       # React contexts
+│       │   ├── AuthContext.tsx             # Auth provider
+│       │   ├── ThemeContext.tsx            # Theme provider
+│       │   └── ToastContext.tsx            # Toast notifications
+│       │
+│       ├── hooks/                          # Custom hooks (empty)
+│       │
+│       ├── pages/                          # Page components
+│       │   ├── auth/                       # Auth pages
+│       │   │   ├── LoginPage.tsx
+│       │   │   └── RegisterPage.tsx
+│       │   │
+│       │   ├── dashboard/                  # Dashboard pages
+│       │   │   ├── DashboardHome.old.tsx   # Old home (backup)
+│       │   │   ├── DashboardHome.tsx       # Dashboard home
+│       │   │   ├── DashboardPage.tsx       # Dashboard wrapper
+│       │   │   └── index.ts                # Exports
+│       │   │
+│       │   ├── footprint/                  # Footprint pages
+│       │   │   ├── FootprintPage.tsx
+│       │   │   └── index.ts
+│       │   │
+│       │   ├── interview/                  # Interview pages
+│       │   │   └── index.tsx
+│       │   │
+│       │   ├── jobs/                       # Jobs pages
+│       │   │   └── index.tsx
+│       │   │
+│       │   └── resume/                     # Resume pages
+│       │       ├── ResumePage.tsx
+│       │       └── index.ts
+│       │
+│       ├── schemas/                        # Validation schemas (empty)
+│       │
+│       ├── services/                       # API services
+│       │   ├── api-client.ts               # Axios client
+│       │   ├── auth.service.ts             # Auth API
+│       │   ├── interview.service.ts        # Interview API
+│       │   ├── jobs.service.ts             # Jobs API
+│       │   └── resume.service.ts           # Resume API
+│       │
+│       ├── types/                          # TypeScript types
+│       │   └── api.ts                      # API types
+│       │
+│       └── utils/                          # Utility functions (empty)
 │
-├── logs/
+├── logs/                                   # Application logs
 │   └── job_updater.log
 │
-├── models/
+├── scripts/                                # Utility scripts
+│   ├── cli/                                # CLI tools
+│   │   └── utopiahire.py                   # CLI interface
+│   │
+│   └── populate/                           # Data population
+│       ├── daily_job_updater.py            # Daily job updater
+│       ├── populate_jobs_comprehensive.py  # Comprehensive job population
+│       └── quick_populate_jobs.py          # Quick job population
 │
-├── utils/
-│   ├── ai_answer_analyzer.py
-│   ├── ai_recommendation_generator.py
-│   ├── answer_analyzer.py
-│   ├── create_sample_resume.py
-│   ├── footprint_calculator.py
-│   ├── github_analyzer.py
-│   ├── interview_simulator.py
-│   ├── job_matcher.py
-│   ├── job_scraper.py
-│   ├── resume_analyzer.py
-│   ├── resume_enhancer.py
-│   ├── resume_parser.py
-│   ├── resume_templates.py
-│   ├── resume_templates_pdf_backup.py
-│   └── stackoverflow_scanner.py
+├── tests/                                  # Test files
+│   ├── __pycache__/
+│   ├── test_add_jobs.py                    # Job addition tests
+│   ├── test_ai_integration.py              # AI integration tests
+│   ├── test_analyzer.py                    # Analyzer tests
+│   ├── test_api.py                         # API tests
+│   ├── test_auth.py                        # Auth tests
+│   ├── test_delete.py                      # Delete operation tests
+│   ├── test_enhancement_download.py        # Resume enhancement tests
+│   ├── test_footprint.py                   # Footprint tests
+│   ├── test_groq_interview.py              # Groq interview tests
+│   ├── test_groq_recommendations.py        # Groq recommendation tests
+│   ├── test_hf_token.py                    # HuggingFace token tests
+│   ├── test_interview_endpoint.py          # Interview endpoint tests
+│   ├── test_job_compatibility.py           # Job compatibility tests
+│   ├── test_job_matcher.py                 # Job matcher tests
+│   ├── test_jobs.py                        # Jobs API tests
+│   └── test_resume.py                      # Resume API tests
 │
-├── .env
-├── PROJECT_COMPLETE.md
-├── PROJECT_STRUCTURE_COMPLETE.md
-├── daily_job_updater.py
-├── install_dependencies.sh
-├── populate_jobs_comprehensive.py
-├── quick_populate_jobs.py
-├── requirements.txt
-├── test_add_jobs.py
-├── test_ai_integration.py
-├── test_delete.py
-├── test_enhancement_download.py
-├── test_hf_token.py
-├── test_interview_endpoint.py
-└── test_job_matcher.py
+├── utils/                                  # Utility modules
+│   ├── __pycache__/
+│   ├── cover_letter_generator.py           # AI cover letter generator (NEW)
+│   ├── footprint_calculator.py             # Footprint score calculator
+│   ├── github_analyzer.py                  # GitHub profile analyzer
+│   ├── groq_answer_analyzer.py             # Groq answer analysis
+│   ├── groq_recommendation_generator.py    # Groq recommendations
+│   ├── interview_simulator.py              # Interview simulation
+│   ├── job_compatibility_analyzer.py       # AI job compatibility
+│   ├── job_matcher.py                      # Job matching algorithm
+│   ├── job_scraper.py                      # Job scraping
+│   ├── resume_analyzer.py                  # Resume analysis
+│   ├── resume_enhancer.py                  # Resume enhancement
+│   ├── resume_parser.py                    # PDF/DOCX parsing
+│   ├── resume_templates.py                 # Template generation
+│   └── stackoverflow_scanner.py            # StackOverflow scanner
+│
+└── venv/                                   # Python virtual environment
 ```
 
 ---
@@ -896,17 +1059,63 @@ python3 daily_job_updater.py
 ## Contact & Support
 
 **Project:** UtopiaHire - AI-Powered Career Platform  
-**Documentation Generated:** November 3, 2025  
-**Version:** 2.0 (Verified & Corrected)  
-**Total Files Documented:** ~160 source files
+**Documentation Generated:** November 4, 2025  
+**Version:** 3.0 (Updated with Job Compatibility Feature)  
+**Total Files Documented:** ~180 source files
 
-For more information, see the main `README.md` file.
+**Key Updates in v3.0:**
+- Added Module 6: Job Compatibility Analyzer with Groq AI
+- Reorganized all tests to `tests/` folder (16 tests)
+- Consolidated all documentation in `docs/` folder (13+ docs)
+- Updated environment variables (added GROQ_API_KEY)
+- Enhanced frontend with JobCompatibilityAnalyzer component
+
+For more information, see:
+- Main `README.md`
+- `docs/JOB_COMPATIBILITY_FEATURE.md` for new feature details
+- `docs/DEPLOYMENT.md` for deployment instructions
 
 ---
 
-## Verification Summary (November 3, 2025)
+## Update History
 
-### ✅ Corrections Made:
+### Version 3.0 - November 4, 2025
+
+#### ✅ New Features Added:
+
+1. **Job Compatibility Analyzer (Module 6):**
+   - New backend endpoint: `/api/v1/jobs/compatibility`
+   - New utility: `utils/job_compatibility_analyzer.py` (447 lines)
+   - New frontend component: `JobCompatibilityAnalyzer.tsx` (463 lines)
+   - New test: `tests/test_job_compatibility.py`
+   - AI-powered analysis using Groq API (llama-3.3-70b-versatile)
+   - Features: skill matching, experience evaluation, AI recommendations
+   - Scoring: Overall = Skills(50%) + Experience(35%) + Education(15%)
+
+2. **Project Reorganization:**
+   - All test files moved to `tests/` folder (16 test files total)
+   - All documentation moved to `docs/` folder (13+ markdown files)
+   - Updated `.gitignore` to exclude `tests/` from version control
+
+3. **Documentation Updates:**
+   - New documentation: `JOB_COMPATIBILITY_FEATURE.md`
+   - Consolidated all docs in `docs/` folder
+   - Updated PROJECT_STRUCTURE_COMPLETE.md (this file)
+
+#### 📊 Updated Project Statistics (November 4, 2025):
+- **Backend:** 23 Python files (API, models, migrations)
+- **Frontend:** 44 TypeScript/TSX files (including JobCompatibilityAnalyzer)
+- **Utils:** 15 utility scripts (including job_compatibility_analyzer)
+- **Config:** 13 configuration files
+- **Tests:** 16 Python test scripts (in tests/ folder, ignored by git)
+- **Docs:** 20 markdown files (1 README, 13 in docs/, 6 in backend/frontend)
+- **Total Source Files:** ~180 files
+
+---
+
+### Version 2.0 - November 3, 2025
+
+#### ✅ Corrections Made:
 
 1. **Added Missing Directories:**
    - `frontend/src/i18n/` with `I18nContext.tsx`
@@ -914,25 +1123,20 @@ For more information, see the main `README.md` file.
    - `frontend/src/schemas/` (empty - reserved for future use)
 
 2. **Removed Non-Existent Files:**
-   - Removed references to 48+ markdown files (only 2 exist in root)
+   - Removed references to 48+ markdown files
    - Removed: `backend.log`, `server.log`, `utopiahire` CLI script
-   - Removed test scripts: `test_all.sh`, `test_daily_updater.sh`, `test_footprint_api.sh`, `test_interview_api.sh`, `test_job_filters.sh`, `status.sh`
+   - Removed test scripts: `test_all.sh`, etc.
 
 3. **Updated File Counts:**
-   - Documentation: 55+ → 9 (2 in root, 7 in docs/)
+   - Documentation: 55+ → 9 (accurate count)
    - Test Scripts: 13 → 7 (Python scripts only)
    - Frontend TypeScript Files: 42 → 43 (added I18nContext.tsx)
    - Total Files: 195+ → ~160 (accurate count)
 
-4. **Updated Command Examples:**
-   - Replaced shell script test commands with Python test commands
-   - Removed references to non-existent scripts
-
-### 📊 Actual Project Statistics:
-- **Backend:** 23 Python files (API, models, migrations)
-- **Frontend:** 43 TypeScript/TSX files (components, pages, services, i18n)
-- **Utils:** 14 utility scripts (AI analyzers, parsers)
-- **Config:** 13 configuration files
+#### 📊 Project Statistics (November 3, 2025):
+- **Backend:** 23 Python files
+- **Frontend:** 43 TypeScript/TSX files
+- **Utils:** 14 utility scripts
 - **Tests:** 7 Python test scripts
 - **Docs:** 9 markdown files
 - **Total Source Files:** ~160 files

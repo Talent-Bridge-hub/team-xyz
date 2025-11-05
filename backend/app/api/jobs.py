@@ -3,7 +3,7 @@ Job Matcher API Endpoints
 Scrape jobs, match with resumes, search and filter opportunities
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import List, Optional, Dict, Any
 import logging
 import time
@@ -26,7 +26,9 @@ from backend.app.models.job import (
     MatchScore,
     MatchScoreBreakdown,
     SalaryRange,
-    JobDetailResponse
+    JobDetailResponse,
+    JobCompatibilityRequest,
+    JobCompatibilityResponse
 )
 from backend.app.models.user import UserResponse
 
@@ -413,6 +415,7 @@ async def list_jobs(
     location: Optional[str] = None,
     job_type: Optional[str] = None,
     remote_only: bool = False,
+    experience_level: Optional[str] = None,
     current_user: UserResponse = Depends(get_current_user)
 ):
     """
@@ -423,6 +426,7 @@ async def list_jobs(
     - **location**: Filter by location
     - **job_type**: Filter by employment type
     - **remote_only**: Show only remote jobs
+    - **experience_level**: Filter by experience level (Junior, Mid-Level, Senior, Lead, Executive)
     
     Returns paginated job list
     """
@@ -457,6 +461,11 @@ async def list_jobs(
         
         if remote_only:
             where_conditions.append("remote = TRUE")
+        
+        if experience_level:
+            # Use ILIKE for flexible matching of experience levels
+            where_conditions.append("experience_level ILIKE %s")
+            where_params.append(f"%{experience_level}%")
         
         where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
         
@@ -772,6 +781,91 @@ async def get_market_insights(
         )
 
 
+@router.get("/saved")
+async def get_saved_jobs(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Results per page"),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    Get all jobs saved by the current user
+    
+    - **page**: Page number (default 1)
+    - **page_size**: Results per page (default 20)
+    
+    Returns list of saved jobs
+    """
+    try:
+        logger.info(f"User {current_user.id} requested saved jobs (page {page})")
+        
+        # Get saved job IDs
+        saved_query = """
+            SELECT sj.job_id, sj.saved_at, sj.notes, j.*
+            FROM saved_jobs sj
+            JOIN jobs j ON sj.job_id = j.job_id
+            WHERE sj.user_id = %s
+            ORDER BY sj.saved_at DESC
+            LIMIT %s OFFSET %s
+        """
+        offset = (page - 1) * page_size
+        saved_jobs = db.execute_query(saved_query, (current_user.id, page_size, offset))
+        
+        # Count total saved jobs
+        count_query = "SELECT COUNT(*) as count FROM saved_jobs WHERE user_id = %s"
+        count_result = db.execute_query(count_query, (current_user.id,))
+        total = count_result[0]['count'] if count_result else 0
+        
+        # Convert to response format
+        jobs_list = []
+        for job in saved_jobs:
+            required_skills = job.get('required_skills', [])
+            if isinstance(required_skills, str):
+                required_skills = json.loads(required_skills)
+            
+            salary_range = job.get('salary_range')
+            if isinstance(salary_range, str):
+                salary_range = json.loads(salary_range) if salary_range else None
+            
+            salary_obj = None
+            if salary_range:
+                salary_obj = SalaryRange(
+                    min=salary_range.get('min'),
+                    max=salary_range.get('max'),
+                    currency=salary_range.get('currency', 'USD'),
+                    text=salary_range.get('text')
+                )
+            
+            job_item = JobListItem(
+                id=job['job_id'],
+                title=job['title'],
+                company=job['company'],
+                location=job['location'],
+                remote=job.get('remote', False),
+                job_type=job.get('job_type', 'Full-time'),
+                experience_level=job.get('experience_level'),
+                salary_range=salary_obj,
+                posted_date=job.get('posted_date'),
+                url=job['url'],
+                required_skills=required_skills[:5]
+            )
+            jobs_list.append(job_item)
+        
+        return {
+            "jobs": jobs_list,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "message": f"Found {total} saved jobs"
+        }
+        
+    except Exception as e:
+        logger.error(f"Get saved jobs failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get saved jobs: {str(e)}"
+        )
+
+
 @router.get("/{job_id}", response_model=JobDetailResponse)
 async def get_job_details(
     job_id: str,
@@ -907,4 +1001,203 @@ async def get_job_details(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get job details: {str(e)}"
+        )
+
+
+@router.post("/{job_id}/save")
+async def save_job(
+    job_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    Save/bookmark a job for later review
+    
+    - **job_id**: Unique job identifier
+    
+    Returns success message
+    """
+    try:
+        logger.info(f"User {current_user.id} saving job {job_id}")
+        
+        # Check if job exists
+        job = db.get_one('jobs', f"job_id = %s", (job_id,))
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Job {job_id} not found"
+            )
+        
+        # Check if already saved
+        existing = db.get_one('saved_jobs', f"user_id = %s AND job_id = %s", (current_user.id, job_id))
+        if existing:
+            return {
+                "message": "Job already saved",
+                "success": True,
+                "job_id": job_id,
+                "saved_at": existing['saved_at'].isoformat() if existing['saved_at'] else None
+            }
+        
+        # Save job
+        db.insert_one('saved_jobs', {
+            'user_id': current_user.id,
+            'job_id': job_id
+        })
+        
+        return {
+            "message": "Job saved successfully",
+            "success": True,
+            "job_id": job_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Save job failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save job: {str(e)}"
+        )
+
+
+@router.delete("/{job_id}/save")
+async def unsave_job(
+    job_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    Remove a saved/bookmarked job
+    
+    - **job_id**: Unique job identifier
+    
+    Returns success message
+    """
+    try:
+        logger.info(f"User {current_user.id} unsaving job {job_id}")
+        
+        # Delete saved job
+        deleted = db.delete_one('saved_jobs', 'user_id = %s AND job_id = %s', (current_user.id, job_id))
+        
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found in saved jobs"
+            )
+        
+        return {
+            "message": "Job removed from saved jobs",
+            "success": True,
+            "job_id": job_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unsave job failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to unsave job: {str(e)}"
+        )
+
+
+@router.post("/compatibility", response_model=JobCompatibilityResponse)
+async def analyze_job_compatibility(
+    request: JobCompatibilityRequest,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """
+    Analyze compatibility between a resume and job description
+    
+    Uses AI to provide detailed analysis of how well a candidate's CV matches
+    a specific job posting, including skills match, experience fit, and recommendations.
+    
+    - **resume_id**: ID of the resume to analyze
+    - **job_description**: Full job description text
+    - **job_title**: Optional job title
+    - **company**: Optional company name
+    - **required_skills**: Optional list of required skills
+    
+    Returns detailed compatibility analysis with scores and recommendations
+    """
+    start_time = time.time()
+    
+    try:
+        logger.info(f"User {current_user.id} requesting job compatibility analysis")
+        logger.info(f"Resume ID: {request.resume_id}, Job: {request.job_title or 'Untitled'}")
+        
+        # Import compatibility analyzer
+        from utils.job_compatibility_analyzer import JobCompatibilityAnalyzer
+        from utils.resume_parser import ResumeParser
+        
+        # Get resume from database
+        resume = db.get_one('resumes', 'id = %s AND user_id = %s', (request.resume_id, current_user.id))
+        
+        if not resume:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Resume {request.resume_id} not found"
+            )
+        
+        # Parse resume if not already parsed
+        parsed_data = resume.get('parsed_data')
+        
+        if not parsed_data or not isinstance(parsed_data, dict):
+            logger.info(f"Parsing resume {request.resume_id} for analysis")
+            parser = ResumeParser()
+            file_path = resume.get('file_path')
+            
+            if not file_path or not os.path.exists(file_path):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Resume file not found. Please re-upload your resume."
+                )
+            
+            parsed_data = parser.parse_file(file_path)
+            
+            # Update database with parsed data
+            db.update('resumes', 
+                     'id = %s', 
+                     (request.resume_id,),
+                     parsed_data=Json(parsed_data))
+        
+        # Analyze compatibility
+        analyzer = JobCompatibilityAnalyzer()
+        result = analyzer.analyze(
+            parsed_resume=parsed_data,
+            job_description=request.job_description,
+            job_title=request.job_title,
+            company=request.company,
+            required_skills=request.required_skills
+        )
+        
+        # Format response
+        response = JobCompatibilityResponse(
+            resume_id=request.resume_id,
+            job_title=request.job_title,
+            company=request.company,
+            overall_match_score=result['overall_match_score'],
+            skill_match_score=result['skill_match_score'],
+            experience_match_score=result['experience_match_score'],
+            education_match_score=result['education_match_score'],
+            matched_skills=result['matched_skills'],
+            missing_skills=result['missing_skills'],
+            strengths=result['strengths'],
+            gaps=result['gaps'],
+            recommendations=result['recommendations'],
+            ai_summary=result.get('ai_summary'),
+            ai_detailed_analysis=result.get('ai_detailed_analysis'),
+            analyzed_at=datetime.now().isoformat()
+        )
+        
+        processing_time = int((time.time() - start_time) * 1000)
+        logger.info(f"✓ Compatibility analysis complete in {processing_time}ms - Score: {result['overall_match_score']}%")
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Compatibility analysis failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze job compatibility: {str(e)}"
         )

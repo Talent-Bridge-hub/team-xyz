@@ -37,6 +37,12 @@ htmlcov/
 .pytest_cache/
 
 # ============================================
+# Tests
+# ============================================
+tests/
+test_*.py
+
+# ============================================
 # Node.js / React / Frontend
 # ============================================
 node_modules/
@@ -47,10 +53,17 @@ yarn-error.log*
 .pnpm-debug.log*
 lerna-debug.log*
 /frontend/dist
+/frontend/dist-ssr
 /frontend/build
 /frontend/.vite
 .npm
 .eslintcache
+*.local
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # ============================================
 # Database
@@ -75,6 +88,7 @@ job_updater.log
 # IDE / Editor
 # ============================================
 .vscode/
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo

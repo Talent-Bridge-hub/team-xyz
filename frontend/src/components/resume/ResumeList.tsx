@@ -7,18 +7,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { resumeService } from '../../services/resume.service';
 import { ResumeTemplatesModal } from './ResumeTemplatesModal';
+import { useToast } from '../../contexts/ToastContext';
+import { SkeletonCard } from '../common/Skeleton';
 import type { Resume } from '../../types/api';
 
 interface ResumeListProps {
   onResumeSelect: (resumeId: number) => void;
+  onGenerateCoverLetter?: (resumeId: number) => void;
   refreshTrigger?: number;
 }
 
-export function ResumeList({ onResumeSelect, refreshTrigger }: ResumeListProps) {
+export function ResumeList({ onResumeSelect, onGenerateCoverLetter, refreshTrigger }: ResumeListProps) {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const { showError } = useToast();
 
   useEffect(() => {
     loadResumes();
@@ -45,7 +49,7 @@ export function ResumeList({ onResumeSelect, refreshTrigger }: ResumeListProps) 
       await resumeService.deleteResume(id);
       setResumes(resumes.filter((r) => r.id !== id));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to delete resume');
+      showError(err.response?.data?.detail || 'Failed to delete resume');
     }
   };
 
@@ -67,10 +71,15 @@ export function ResumeList({ onResumeSelect, refreshTrigger }: ResumeListProps) 
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading resumes...</span>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 animate-pulse" />
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       </div>
     );
@@ -242,13 +251,23 @@ export function ResumeList({ onResumeSelect, refreshTrigger }: ResumeListProps) 
               </div>
             )}
 
-            {/* View Analysis Button */}
-            <button
-              onClick={() => onResumeSelect(resume.id)}
-              className="mt-4 w-full py-2 px-4 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              View Analysis
-            </button>
+            {/* Action Buttons */}
+            <div className="mt-4 space-y-2">
+              <button
+                onClick={() => onResumeSelect(resume.id)}
+                className="w-full py-2 px-4 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                View Analysis
+              </button>
+              {onGenerateCoverLetter && (
+                <button
+                  onClick={() => onGenerateCoverLetter(resume.id)}
+                  className="w-full py-2 px-4 bg-green-600 dark:bg-green-700 text-white text-sm font-medium rounded-md hover:bg-green-700 dark:hover:bg-green-800 transition-colors"
+                >
+                  Generate Cover Letter
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

@@ -144,18 +144,16 @@ class ResumeService {
   }
 
   /**
-   * Download enhanced resume with improvements applied
+   * Download enhanced resume with all improvements applied automatically
    */
   async downloadEnhancedResume(
     id: number, 
-    enhancementType: string = 'full',
-    selectedImprovements?: string[]
+    enhancementType: string = 'full'
   ): Promise<Blob> {
     return await apiClient.post<Blob>(
       `/resumes/${id}/download-enhanced`,
       {
         enhancement_type: enhancementType,
-        selected_improvements: selectedImprovements,
       },
       {
         responseType: 'blob',
@@ -180,6 +178,33 @@ class ResumeService {
         responseType: 'blob',
       }
     );
+  }
+
+  /**
+   * Generate a personalized cover letter
+   */
+  async generateCoverLetter(request: {
+    resume_id: number;
+    job_title: string;
+    company: string;
+    job_description: string;
+    tone?: string;
+    length?: string;
+    highlights?: string[];
+  }): Promise<{
+    cover_letter: string;
+    word_count: number;
+    sections: Record<string, string>;
+    suggestions: string[];
+    metadata: {
+      job_title: string;
+      company: string;
+      tone: string;
+      length: string;
+      generated_at: string;
+    };
+  }> {
+    return await apiClient.post('/resumes/generate-cover-letter', request);
   }
 }
 

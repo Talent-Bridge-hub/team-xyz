@@ -78,43 +78,11 @@ class ResumeAnalyzer:
             use_ai_models: If True, use transformer models for advanced analysis
                           If False, use rule-based analysis (faster, no downloads)
         """
-        self.use_ai_models = use_ai_models
+        # Note: All AI analysis is now handled via Groq API in the API layer
+        # This analyzer focuses on rule-based metrics and pattern matching
+        self.use_ai_models = False
         self.models_loaded = False
-        
-        if use_ai_models:
-            self._load_ai_models()
-    
-    def _load_ai_models(self):
-        """
-        Load AI models for advanced analysis
-        
-        WHY: Transformer models provide better semantic understanding
-        We use lightweight models optimized for 8GB RAM
-        """
-        try:
-            from transformers import pipeline
-            from sentence_transformers import SentenceTransformer
-            
-            logger.info("Loading AI models (this may take a minute first time)...")
-            
-            # Sentiment analysis for tone detection
-            self.sentiment_analyzer = pipeline(
-                "sentiment-analysis",
-                model="distilbert-base-uncased-finetuned-sst-2-english",
-                device=-1  # CPU
-            )
-            
-            # Sentence embeddings for semantic similarity
-            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-            
-            self.models_loaded = True
-            logger.info("✓ AI models loaded successfully")
-            
-        except Exception as e:
-            logger.warning(f"Could not load AI models: {e}")
-            logger.info("Falling back to rule-based analysis")
-            self.use_ai_models = False
-            self.models_loaded = False
+        logger.info("Resume analyzer initialized (AI features via Groq API)")
     
     def analyze(self, parsed_resume: Dict) -> Dict:
         """
@@ -698,25 +666,24 @@ class ResumeAnalyzer:
         exp_text = str(experience_section).lower()
         word_count = len(exp_text.split())
         
-        # 1. Check for experience entries - STRICTER
+        # 1. Check for experience entries - MORE LENIENT
         if not experience:
             # Try to estimate from text
-            if word_count < 30:
-                score -= 50  # Almost nothing
+            if word_count < 10:
+                score -= 40  # Almost nothing
+            elif word_count < 30:
+                score -= 25
             elif word_count < 50:
-                score -= 35
-            elif word_count < 100:
-                score -= 20
+                score -= 15
         else:
             num_positions = len(experience)
             if num_positions < 1:
-                score -= 50
+                score -= 40
             elif num_positions < 2:
-                score -= 25
-            elif num_positions < 3:
-                score -= 10
+                score -= 15
+            # Having 1-2 positions is acceptable, don't penalize too much
         
-        # 2. Check for action verbs - REQUIRED
+        # 2. Check for action verbs - MORE LENIENT
         all_action_verbs = []
         for category, verbs in self.ACTION_VERBS.items():
             all_action_verbs.extend(verbs)
@@ -724,14 +691,19 @@ class ResumeAnalyzer:
         words = exp_text.split()
         action_verb_count = sum(1 for word in words if word in all_action_verbs)
         
-        if action_verb_count == 0:
-            score -= 40  # No action verbs at all
-        elif action_verb_count < 3:
-            score -= 30
-        elif action_verb_count < 5:
-            score -= 20
-        elif action_verb_count < 8:
-            score -= 10
+        # Also give credit for job-related keywords
+        job_keywords = ['founder', 'co-founder', 'ceo', 'chair', 'co-chair', 'director', 'manager', 
+                       'lead', 'engineer', 'developer', 'analyst', 'consultant']
+        job_keyword_count = sum(1 for keyword in job_keywords if keyword in exp_text)
+        
+        total_relevant_words = action_verb_count + job_keyword_count
+        
+        if total_relevant_words == 0:
+            score -= 25  # No relevant words at all
+        elif total_relevant_words < 2:
+            score -= 15
+        elif total_relevant_words < 4:
+            score -= 5
         
         # 3. Check for quantifiable achievements (CRITICAL) - numbers, percentages
         numbers = re.findall(r'\d+[%$]?|\$\d+|[\d,]+\+?', exp_text)
@@ -813,19 +785,21 @@ class ResumeAnalyzer:
             # Template detected - should get VERY low score
             return 10  # Automatic 10% for template text!
         
-        # 1. Check for education entries - STRICTER
+        # 1. Check for education entries - MORE LENIENT
         if not education:
-            if word_count < 5:
-                score -= 50  # Almost nothing
-            elif word_count < 10:
-                score -= 40  # Increased from 35
+            if word_count < 3:
+                score -= 40  # Almost nothing
+            elif word_count < 8:
+                score -= 25
             elif word_count < 15:
-                score -= 25  # Increased from 20
+                score -= 10
         else:
+            # Having at least one education entry is good!
             if len(education) < 1:
-                score -= 50
+                score -= 30
+            # Don't penalize for having just 1 education entry
         
-        # 2. Check for SPECIFIC degree level keywords (not generic "degree")
+        # 2. Check for SPECIFIC degree level keywords (not generic "degree") - MORE LENIENT
         specific_degree_keywords = [
             'bachelor', 'master', 'phd', 'diploma', 'certificate',
             'bsc', 'msc', 'ba', 'ma', 'b.sc', 'm.sc', 'b.a', 'm.a',
@@ -836,11 +810,18 @@ class ResumeAnalyzer:
         # Check for generic "degree" only (template indicator)
         has_generic_degree_only = 'degree' in edu_text and not has_specific_degree
         
+        # Also check for institution keywords which indicate education is present
+        institution_keywords = ['university', 'college', 'school', 'institute', 
+                               'academy', 'polytechnic', 'conservatory']
+        has_institution = any(kw in edu_text for kw in institution_keywords)
+        
         if not has_specific_degree:
             if has_generic_degree_only:
-                score -= 45  # Just says "degree" - likely template!
+                score -= 35  # Just says "degree" - likely template (reduced from 45)
+            elif has_institution:
+                score -= 20  # Has institution but no specific degree (reduced from 40)
             else:
-                score -= 40  # No degree at all
+                score -= 30  # No degree or institution (reduced from 40)
         
         # 3. Check for REAL institution name (must be specific, not generic)
         # Generic institution keywords (these are RED FLAGS)
@@ -863,11 +844,15 @@ class ResumeAnalyzer:
                 break
         
         if has_generic_institution:
-            score -= 45  # Generic "university/universities" - template!
+            score -= 35  # Generic "university/universities" - template (reduced from 45)
         elif not has_real_institution:
-            score -= 40  # No real institution name
+            # More lenient - if we found institution keywords earlier, it's okay
+            if has_institution:
+                score -= 10  # Has institution keyword but not proper name (reduced from 40)
+            else:
+                score -= 25  # No institution at all (reduced from 40)
         
-        # 4. Check for dates (graduation year) - IMPORTANT
+        # 4. Check for dates (graduation year) - MORE LENIENT
         years = re.findall(r'20\d{2}|19\d{2}', edu_text)
         
         # Check if dates are obviously fake/examples
@@ -875,30 +860,30 @@ class ResumeAnalyzer:
         has_fake_years = any(pattern in edu_text for pattern in fake_year_patterns)
         
         if has_fake_years:
-            score -= 35  # Fake/example years
+            score -= 25  # Fake/example years (reduced from 35)
         elif not years:
-            score -= 25  # No dates at all (increased from 20)
+            score -= 15  # No dates at all (reduced from 25)
         elif len(years) < 2:
-            score -= 15  # Only one date (increased from 10)
+            score -= 5  # Only one date is fine (reduced from 15)
         
-        # 5. Check for additional details (GPA, honors, relevant coursework)
+        # 5. Check for additional details (GPA, honors, relevant coursework) - MORE LENIENT
         detail_keywords = ['gpa', 'honor', 'distinction', 'cum laude', 'thesis', 
                           'coursework', 'major', 'minor', 'concentration', 'dean',
                           'scholarship', 'award', 'summa', 'magna', '3.', '4.0']
         details_count = sum(1 for kw in detail_keywords if kw in edu_text)
         
         if details_count == 0:
-            score -= 15  # No additional details (increased from 10)
+            score -= 5  # No additional details (reduced from 15)
         elif details_count >= 2:
-            score += 5  # Good details bonus
+            score += 10  # Good details bonus (increased from 5)
         
-        # 6. Check appropriate length - STRICTER
-        if word_count < 8:
-            score -= 35  # Too short (increased from 30)
-        elif word_count < 12:
-            score -= 25  # Increased from 20
+        # 6. Check appropriate length - MORE LENIENT
+        if word_count < 5:
+            score -= 25  # Very short (reduced from 35)
+        elif word_count < 10:
+            score -= 15  # Short (reduced from 25)
         elif word_count < 15:
-            score -= 15  # Increased from 10
+            score -= 5  # Minimal but okay (reduced from 15)
         
         # 7. Check for vague/placeholder text patterns
         vague_patterns = ['city', 'country', 'location', 'applicable', 'additional info',

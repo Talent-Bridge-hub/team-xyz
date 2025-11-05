@@ -16,14 +16,20 @@ from .schemas import (
     TokenResponseSchema,
     UserInDBSchema
 )
-from shared.security import (
+from .models import (
+    UserQueries,
+    user_row_to_dict,
+    user_row_to_response,
+    prepare_user_data
+)
+from app.shared.security import (
     get_password_hash,
     verify_password,
     create_access_token,
     verify_token
 )
-from shared.database import DatabaseWrapper
-from core.config import settings
+from app.shared.database import DatabaseWrapper
+from app.core.config import settings
 
 
 class AuthService:
@@ -61,44 +67,43 @@ class AuthService:
             HTTPException: If email already exists
         """
         # Check if user already exists
-        existing_user = self.db.get_one(
-            "users",
-            "email = %s",
+        result = self.db.execute_query(
+            UserQueries.CHECK_EMAIL_EXISTS,
             (user_data.email,)
         )
         
-        if existing_user:
+        if result and result[0].get('exists'):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
         
-        # Hash password
+        # Hash password and prepare data
         password_hash = get_password_hash(user_data.password)
+        user_tuple = prepare_user_data(user_data.full_name, user_data.email, password_hash)
         
         # Create user in database
-        user_id = self.db.insert_one(
-            "users",
-            email=user_data.email,
-            password_hash=password_hash,
-            name=user_data.full_name,  # DB column is 'name'
-            created_at=datetime.utcnow()
-        )
+        result = self.db.execute_query(UserQueries.INSERT_USER, user_tuple)
         
-        # Fetch created user
-        user = self.db.get_one("users", "id = %s", (user_id,))
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user"
+            )
+        
+        user_row = result[0]
         
         # Generate access token
         access_token = create_access_token(
-            data={"sub": user["email"], "user_id": user["id"]}
+            data={"sub": user_row["email"], "user_id": user_row["id"]}
         )
         
         # Build response
         user_response = UserResponseSchema(
-            id=user["id"],
-            email=user["email"],
-            full_name=user.get("name", user.get("full_name", "")),
-            created_at=user["created_at"]
+            id=user_row["id"],
+            email=user_row["email"],
+            full_name=user_row.get("name", ""),
+            created_at=user_row["created_at"]
         )
         
         return TokenResponseSchema(
@@ -122,21 +127,23 @@ class AuthService:
             HTTPException: If credentials are invalid
         """
         # Find user by email
-        user = self.db.get_one(
-            "users",
-            "email = %s",
+        result = self.db.execute_query(
+            UserQueries.SELECT_BY_EMAIL,
             (credentials.email,)
         )
         
-        if not user:
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
+        user_row = result[0]
+        user_dict = user_row_to_dict(user_row)
+        
         # Verify password
-        if not verify_password(credentials.password, user["password_hash"]):
+        if not verify_password(credentials.password, user_dict["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
@@ -145,15 +152,15 @@ class AuthService:
         
         # Generate access token
         access_token = create_access_token(
-            data={"sub": user["email"], "user_id": user["id"]}
+            data={"sub": user_dict["email"], "user_id": user_dict["id"]}
         )
         
         # Build response
         user_response = UserResponseSchema(
-            id=user["id"],
-            email=user["email"],
-            full_name=user.get("name", user.get("full_name", "")),
-            created_at=user["created_at"]
+            id=user_dict["id"],
+            email=user_dict["email"],
+            full_name=user_dict["full_name"],
+            created_at=user_dict["created_at"]
         )
         
         return TokenResponseSchema(
@@ -173,16 +180,18 @@ class AuthService:
         Returns:
             User information or None if not found
         """
-        user = self.db.get_one("users", "id = %s", (user_id,))
+        result = self.db.execute_query(UserQueries.SELECT_BY_ID, (user_id,))
         
-        if not user:
+        if not result:
             return None
         
+        user_dict = user_row_to_dict(result[0])
+        
         return UserResponseSchema(
-            id=user["id"],
-            email=user["email"],
-            full_name=user.get("name", user.get("full_name", "")),
-            created_at=user["created_at"]
+            id=user_dict["id"],
+            email=user_dict["email"],
+            full_name=user_dict["full_name"],
+            created_at=user_dict["created_at"]
         )
     
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
@@ -195,7 +204,12 @@ class AuthService:
         Returns:
             User data dictionary or None if not found
         """
-        return self.db.get_one("users", "email = %s", (email,))
+        result = self.db.execute_query(UserQueries.SELECT_BY_EMAIL, (email,))
+        
+        if not result:
+            return None
+        
+        return user_row_to_dict(result[0])
     
     async def update_user_profile(
         self,
@@ -216,13 +230,15 @@ class AuthService:
             HTTPException: If user not found or validation fails
         """
         # Get current user
-        user = self.db.get_one("users", "id = %s", (user_id,))
+        result = self.db.execute_query(UserQueries.SELECT_BY_ID, (user_id,))
         
-        if not user:
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
+        
+        user_dict = user_row_to_dict(result[0])
         
         # Prepare update fields
         update_fields = {}
@@ -232,12 +248,11 @@ class AuthService:
         
         if update_data.email:
             # Check if new email already exists
-            existing = self.db.get_one(
-                "users",
-                "email = %s AND id != %s",
+            check_result = self.db.execute_query(
+                "SELECT id FROM users WHERE email = %s AND id != %s",
                 (update_data.email, user_id)
             )
-            if existing:
+            if check_result:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already in use"
@@ -253,14 +268,14 @@ class AuthService:
                 )
             
             # Verify current password
-            if not verify_password(update_data.current_password, user["password_hash"]):
+            if not verify_password(update_data.current_password, user_dict["password_hash"]):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Current password is incorrect"
                 )
             
             # Hash new password
-            update_fields["password_hash"] = get_password_hash(update_data.new_password)
+            update_fields["password"] = get_password_hash(update_data.new_password)
         
         if not update_fields:
             raise HTTPException(
@@ -268,24 +283,27 @@ class AuthService:
                 detail="No fields to update"
             )
         
-        # Add updated timestamp
+        # Build dynamic UPDATE query
         update_fields["updated_at"] = datetime.utcnow()
+        set_clause = ", ".join([f"{k} = %s" for k in update_fields.keys()])
+        query = UserQueries.UPDATE_USER.format(fields=set_clause)
+        params = tuple(list(update_fields.values()) + [user_id])
         
         # Update user
-        self.db.update_one(
-            "users",
-            update_fields,
-            "id = %s",
-            (user_id,)
-        )
+        result = self.db.execute_query(query, params)
         
-        # Fetch updated user
-        updated_user = self.db.get_one("users", "id = %s", (user_id,))
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update user"
+            )
+        
+        updated_user = user_row_to_dict(result[0])
         
         return UserResponseSchema(
             id=updated_user["id"],
             email=updated_user["email"],
-            full_name=updated_user.get("name", updated_user.get("full_name", "")),
+            full_name=updated_user["full_name"],
             created_at=updated_user["created_at"]
         )
     
@@ -309,16 +327,18 @@ class AuthService:
         Raises:
             HTTPException: If current password is incorrect
         """
-        user = self.db.get_one("users", "id = %s", (user_id,))
+        result = self.db.execute_query(UserQueries.SELECT_BY_ID, (user_id,))
         
-        if not user:
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
+        user_dict = user_row_to_dict(result[0])
+        
         # Verify current password
-        if not verify_password(current_password, user["password_hash"]):
+        if not verify_password(current_password, user_dict["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Current password is incorrect"
@@ -327,11 +347,9 @@ class AuthService:
         # Hash and update new password
         new_password_hash = get_password_hash(new_password)
         
-        self.db.update_one(
-            "users",
-            {"password_hash": new_password_hash, "updated_at": datetime.utcnow()},
-            "id = %s",
-            (user_id,)
+        self.db.execute_query(
+            UserQueries.UPDATE_PASSWORD,
+            (new_password_hash, datetime.utcnow(), user_id)
         )
         
         return True
@@ -349,15 +367,15 @@ class AuthService:
         Raises:
             HTTPException: If user not found
         """
-        user = self.db.get_one("users", "id = %s", (user_id,))
+        result = self.db.execute_query(UserQueries.SELECT_BY_ID, (user_id,))
         
-        if not user:
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
         # Delete user
-        self.db.delete_one("users", "id = %s", (user_id,))
+        self.db.execute_query(UserQueries.DELETE_USER, (user_id,))
         
         return True

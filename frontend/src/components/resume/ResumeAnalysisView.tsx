@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from 'react';
 import { resumeService } from '../../services/resume.service';
+import { useToast } from '../../contexts/ToastContext';
+import { SkeletonChart, SkeletonCard, SkeletonLine } from '../common/Skeleton';
 import type { Resume, ResumeAnalysis } from '../../types/api';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import { ResumeEnhancement } from './ResumeEnhancement';
@@ -12,13 +14,15 @@ import { ResumeEnhancement } from './ResumeEnhancement';
 interface ResumeAnalysisViewProps {
   resumeId: number;
   onBack: () => void;
+  onGenerateCoverLetter?: () => void;
 }
 
-export function ResumeAnalysisView({ resumeId, onBack }: ResumeAnalysisViewProps) {
+export function ResumeAnalysisView({ resumeId, onBack, onGenerateCoverLetter }: ResumeAnalysisViewProps) {
   const [resume, setResume] = useState<Resume | null>(null);
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const { showError } = useToast();
 
   useEffect(() => {
     loadResumeData();
@@ -43,11 +47,34 @@ export function ResumeAnalysisView({ resumeId, onBack }: ResumeAnalysisViewProps
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Analyzing resume...</span>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-40" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+              </div>
+              <div className="w-32 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+            </div>
+          </div>
         </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+
+        {/* Content Skeletons */}
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     );
   }
@@ -112,7 +139,7 @@ export function ResumeAnalysisView({ resumeId, onBack }: ResumeAnalysisViewProps
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: any) {
-      alert('Failed to download resume: ' + (err.response?.data?.detail || err.message));
+      showError('Failed to download resume: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -135,20 +162,38 @@ export function ResumeAnalysisView({ resumeId, onBack }: ResumeAnalysisViewProps
             </svg>
             Back to Resumes
           </button>
-          <button
-            onClick={handleDownloadOriginal}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap={"round" as const}
-                strokeLinejoin={"round" as const}
-                strokeWidth={2}
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Download Original
-          </button>
+          <div className="flex gap-3">
+            {onGenerateCoverLetter && (
+              <button
+                onClick={onGenerateCoverLetter}
+                className="flex items-center px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-800 transition-colors"
+              >
+                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap={"round" as const}
+                    strokeLinejoin={"round" as const}
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Generate Cover Letter
+              </button>
+            )}
+            <button
+              onClick={handleDownloadOriginal}
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap={"round" as const}
+                  strokeLinejoin={"round" as const}
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Download Original
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between mt-6">

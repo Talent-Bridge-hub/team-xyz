@@ -1,6 +1,6 @@
 """
-Real Job Scraper - Multi-API with Automatic Fallback
-Fetches REAL job opportunities from multiple sources with intelligent fallback
+Real Job Scraper - Multi-Source with Intelligent Fallback
+Fetches REAL job opportunities from multiple sources with automatic fallback
 
 FEATURES:
 - SerpAPI (primary) - Google Jobs aggregation
@@ -17,7 +17,7 @@ import json
 import time
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote_plus
 
 # Import API credentials
 import sys
@@ -50,7 +50,7 @@ class RealJobScraper:
         num_results: int = 20
     ) -> List[Dict]:
         """
-        Search for jobs using multiple APIs with automatic fallback
+        Search for jobs using available APIs with intelligent fallback
         
         Args:
             query: Job title or keywords (e.g., "Software Engineer")
@@ -68,12 +68,12 @@ class RealJobScraper:
                 logger.info(f"✓ Using cached results for '{query}' in {location}")
                 return cached_data
         
-        logger.info(f"Searching for '{query}' jobs in {location}...")
+        logger.info(f"🔍 Searching for '{query}' jobs in {location}...")
         
-        # Try each API in priority order
+        # Try APIs in priority order
         for api_name, api_config in self.apis:
             try:
-                logger.info(f"Trying {api_name}...")
+                logger.info(f"  📞 Trying {api_name}...")
                 
                 if api_name == 'serpapi':
                     jobs = self._search_serpapi(query, location, num_results)
@@ -85,19 +85,18 @@ class RealJobScraper:
                     continue
                 
                 if jobs:
-                    logger.info(f"✓ Successfully fetched {len(jobs)} jobs from {api_name}")
+                    logger.info(f"  ✅ {api_name}: {len(jobs)} jobs")
                     self.last_api_used = api_name
                     
                     # Cache results
                     self.cache[cache_key] = (jobs, datetime.now())
-                    
                     return jobs
                 
             except Exception as e:
-                logger.warning(f"✗ {api_name} failed: {e}")
+                logger.warning(f"  ❌ {api_name} failed: {e}")
                 continue
         
-        # All APIs failed
+        # If all APIs failed, use fallback
         logger.error("✗ All APIs failed! Using fallback sample data")
         return self._get_fallback_jobs(query, location)
     
@@ -416,25 +415,47 @@ class RealJobScraper:
 
 # Test function
 if __name__ == '__main__':
-    print("=" * 70)
-    print("Testing Real Job Scraper with Multi-API Fallback")
-    print("=" * 70)
+    print("=" * 80)
+    print("Testing Real Job Scraper - Multi-API with Intelligent Fallback")
+    print("=" * 80)
     
     scraper = RealJobScraper()
     
     # Test search
-    print("\n1. Testing: Software Engineer in Tunisia")
-    jobs = scraper.search_jobs('Software Engineer', 'Tunisia', num_results=5)
+    print("\n1. Testing: Software Engineer in Tunisia\n")
     
-    print(f"\n✓ Found {len(jobs)} jobs!\n")
+    start_time = time.time()
+    jobs = scraper.search_jobs('Software Engineer', 'Tunisia', num_results=10)
+    elapsed = time.time() - start_time
     
-    for i, job in enumerate(jobs, 1):
-        print(f"{i}. {job['title']} at {job['company']}")
-        print(f"   Location: {job['location']}")
-        print(f"   Source: {job['source']}")
-        print(f"   URL: {job['url'][:60]}...")
+    print(f"\n{'='*80}")
+    print(f"✅ Found {len(jobs)} jobs in {elapsed:.2f} seconds!\n")
+    
+    # Group by source
+    sources = {}
+    for job in jobs:
+        source = job['source']
+        sources[source] = sources.get(source, 0) + 1
+    
+    print("📊 Results by source:")
+    for source, count in sources.items():
+        print(f"   • {source}: {count} jobs")
+    
+    print(f"\n{'='*80}")
+    print("Sample Jobs:\n")
+    
+    for i, job in enumerate(jobs[:5], 1):
+        print(f"{i}. [{job['source']}] {job['title']}")
+        print(f"   🏢 {job['company']}")
+        print(f"   📍 {job['location']}")
+        print(f"   🔗 {job['url'][:70]}...")
         print()
     
     # Stats
     stats = scraper.get_scraper_stats()
-    print(f"Stats: Last API used = {stats['last_api_used']}, Cache size = {stats['cache_size']}")
+    print(f"{'='*80}")
+    print(f"📈 Stats:")
+    print(f"   • Last API used: {stats['last_api_used']}")
+    print(f"   • Cache size: {stats['cache_size']}")
+    print(f"   • Available APIs: {stats['apis_available']}")
+    print("=" * 80)

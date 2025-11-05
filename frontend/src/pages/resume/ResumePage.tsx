@@ -7,20 +7,23 @@ import { useState } from 'react';
 import { ResumeUploadForm } from '../../components/resume/ResumeUploadForm';
 import { ResumeList } from '../../components/resume/ResumeList';
 import { ResumeAnalysisView } from '../../components/resume/ResumeAnalysisView';
+import { CoverLetterGenerator } from '../../components/resume/CoverLetterGenerator';
+import { useToast } from '../../contexts/ToastContext';
 
-type View = 'list' | 'analysis';
+type View = 'list' | 'analysis' | 'cover-letter';
 
 export function ResumePage() {
   const [currentView, setCurrentView] = useState<View>('list');
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { showSuccess, showError } = useToast();
 
   const handleUploadSuccess = (resumeId: number) => {
     // Refresh the resume list
     setRefreshTrigger((prev) => prev + 1);
     
     // Show success message
-    alert('Resume uploaded successfully! Analysis in progress...');
+    showSuccess('Resume uploaded successfully! Analysis in progress...');
     
     // Optionally, navigate to analysis view
     // setSelectedResumeId(resumeId);
@@ -30,6 +33,11 @@ export function ResumePage() {
   const handleResumeSelect = (resumeId: number) => {
     setSelectedResumeId(resumeId);
     setCurrentView('analysis');
+  };
+
+  const handleGenerateCoverLetter = (resumeId: number) => {
+    setSelectedResumeId(resumeId);
+    setCurrentView('cover-letter');
   };
 
   const handleBackToList = () => {
@@ -45,8 +53,8 @@ export function ResumePage() {
         <div className="space-y-8">
           {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Resume Analyzer</h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Resume Analyzer</h1>
+            <p className="mt-2 text-slate-600 dark:text-slate-400">
               Upload your resume for AI-powered analysis and get instant feedback on how to improve it
             </p>
           </div>
@@ -54,19 +62,29 @@ export function ResumePage() {
           {/* Upload Form */}
           <ResumeUploadForm 
             onUploadSuccess={handleUploadSuccess}
-            onUploadError={(error: string) => alert(`Upload failed: ${error}`)}
+            onUploadError={(error: string) => showError(error)}
           />
 
           {/* Resume List */}
           <ResumeList 
             onResumeSelect={handleResumeSelect}
+            onGenerateCoverLetter={handleGenerateCoverLetter}
             refreshTrigger={refreshTrigger}
           />
         </div>
-      ) : (
+      ) : currentView === 'analysis' ? (
         /* Analysis View */
         selectedResumeId && (
           <ResumeAnalysisView
+            resumeId={selectedResumeId}
+            onBack={handleBackToList}
+            onGenerateCoverLetter={() => handleGenerateCoverLetter(selectedResumeId)}
+          />
+        )
+      ) : (
+        /* Cover Letter Generator */
+        selectedResumeId && (
+          <CoverLetterGenerator
             resumeId={selectedResumeId}
             onBack={handleBackToList}
           />

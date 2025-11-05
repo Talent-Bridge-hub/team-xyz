@@ -493,48 +493,68 @@ async def get_recommendations(
         github_data = json.loads(scan['github_data']) if isinstance(scan['github_data'], str) else scan['github_data']
         stackoverflow_data = json.loads(scan['stackoverflow_data']) if isinstance(scan['stackoverflow_data'], str) else scan['stackoverflow_data']
         
-        # Generate AI-powered recommendations
+        # Generate recommendations using Groq AI
+        print(f"🤖 Generating AI recommendations for scan {scan_id} using Groq...")
+        print(f"   DEBUG: Checking for GROQ_API_KEY...")
+        profile_recs = []
+        career_insights = []
+        skill_gaps = []
+        
         try:
-            from utils.ai_recommendation_generator import AIRecommendationGenerator
+            # Try Groq AI-powered recommendations first
+            groq_api_key = os.getenv('GROQ_API_KEY')
+            print(f"   DEBUG: GROQ_API_KEY = {'[SET - ' + str(len(groq_api_key)) + ' chars]' if groq_api_key else '[NOT SET]'}")
             
-            # Initialize AI generator
-            hf_token = os.getenv('HUGGINGFACE_TOKEN')
-            ai_generator = AIRecommendationGenerator(hf_token=hf_token)
-            
-            # Get README content from github_data
-            readme_content = github_data.get('profile_readme') if github_data else None
-            
-            # Generate AI recommendations
-            print(f"🤖 Generating AI-powered recommendations for scan {scan_id}...")
-            ai_recommendations = ai_generator.analyze_readme_and_generate_recommendations(
-                readme_content=readme_content,
-                github_data=github_data,
-                stackoverflow_data=stackoverflow_data
-            )
-            
-            # Transform AI recommendations to API format
-            profile_recs = [
-                ProfileRecommendation(**rec) 
-                for rec in ai_recommendations.get('profile_recommendations', [])
-            ]
-            
-            career_insights = [
-                CareerInsight(**insight)
-                for insight in ai_recommendations.get('career_insights', [])
-            ]
-            
-            skill_gaps = ai_recommendations.get('skill_gaps', [])
-            
-            print(f"✓ Generated {len(profile_recs)} recommendations, {len(career_insights)} insights")
-            
+            if groq_api_key:
+                from utils.groq_recommendation_generator import GroqRecommendationGenerator
+                
+                groq_generator = GroqRecommendationGenerator(groq_api_key=groq_api_key)
+                
+                # Get profile README if available
+                readme_content = github_data.get('profile_readme') if github_data else None
+                
+                print(f"  � Using Groq AI for intelligent recommendations...")
+                ai_results = groq_generator.analyze_readme_and_generate_recommendations(
+                    readme_content=readme_content,
+                    github_data=github_data,
+                    stackoverflow_data=stackoverflow_data
+                )
+                
+                # Extract recommendations from AI results
+                for rec in ai_results.get('profile_recommendations', []):
+                    profile_recs.append(ProfileRecommendation(**rec))
+                
+                for insight in ai_results.get('career_insights', []):
+                    career_insights.append(CareerInsight(**insight))
+                
+                skill_gaps = ai_results.get('skill_gaps', [])
+                
+                print(f"  ✅ AI generated {len(profile_recs)} recommendations, {len(career_insights)} insights")
+            else:
+                print(f"  ⚠️  No GROQ_API_KEY found, using rule-based recommendations")
+                raise ValueError("No Groq API key")
+                
         except Exception as e:
-            print(f"⚠️  AI recommendation generation failed: {e}")
-            print(f"   Falling back to rule-based recommendations")
+            import traceback
+            print(f"  ⚠️  Groq AI recommendation generation failed: {e}")
+            print(f"  📋 Error type: {type(e).__name__}")
+            print(f"  📋 Traceback: {traceback.format_exc()[:300]}")
+            print(f"  ↻ Falling back to rule-based recommendations...")
+            
             # Fallback to rule-based recommendations
-            profile_recs, career_insights, skill_gaps, _ = generate_recommendations(
-                github_data,
-                stackoverflow_data
-            )
+            try:
+                profile_recs_data, career_insights_data, skill_gaps, _ = generate_recommendations(
+                    github_data,
+                    stackoverflow_data
+                )
+                profile_recs = profile_recs_data
+                career_insights = career_insights_data
+                print(f"  ✓ Generated {len(profile_recs)} recommendations, {len(career_insights)} insights (rule-based)")
+            except Exception as fallback_error:
+                print(f"  ❌ Fallback also failed: {fallback_error}")
+                profile_recs = []
+                career_insights = []
+                skill_gaps = []
         
         # If we still don't have recommendations, check cache as last resort
         if not profile_recs and scan['recommendations']:

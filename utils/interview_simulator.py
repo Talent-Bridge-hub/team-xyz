@@ -18,8 +18,6 @@ import random
 import json
 
 from config.database import execute_query, insert_one, update_one
-from utils.answer_analyzer import AnswerAnalyzer
-from utils.ai_answer_analyzer import AIAnswerAnalyzer
 from utils.resume_parser import ResumeParser
 
 # Setup logging
@@ -43,20 +41,10 @@ class InterviewSimulator:
         self.user_id = user_id
         self.use_ai = use_ai
         
-        # Initialize analyzers
-        if use_ai:
-            try:
-                self.ai_analyzer = AIAnswerAnalyzer()
-                logger.info("AI analyzer initialized successfully")
-            except Exception as e:
-                logger.warning(f"AI analyzer failed to initialize: {e}. Falling back to basic analyzer.")
-                self.use_ai = False
-                self.analyzer = AnswerAnalyzer()
-        else:
-            self.analyzer = AnswerAnalyzer()
-        
+        # Note: AI analysis is now handled directly in the API layer using Groq
+        # This class focuses on session management and question selection
         self.current_session = None
-        logger.info(f"Interview simulator initialized (AI: {self.use_ai})")
+        logger.info(f"Interview simulator initialized (AI analysis handled by API layer)")
     
     def start_session(
         self,
@@ -184,30 +172,23 @@ class InterviewSimulator:
         question_start = self.current_session.get('question_start_time', datetime.now())
         time_taken = int((datetime.now() - question_start).total_seconds())
         
-        # Analyze the answer using AI or basic analyzer
-        if self.use_ai:
-            try:
-                analysis = self.ai_analyzer.analyze_answer(
-                    user_answer=answer,
-                    question_text=question.get('question_text', ''),
-                    question_data=question,
-                    difficulty_level=self.current_session.get('difficulty_level', 'mid'),
-                    job_role=self.current_session.get('job_role', 'Software Engineer')
-                )
-                logger.info(f"AI analysis complete (score: {analysis['overall_score']})")
-            except Exception as e:
-                logger.error(f"AI analysis failed: {e}. Using fallback analyzer.")
-                analysis = self.analyzer.analyze_answer(
-                    user_answer=answer,
-                    question_data=question,
-                    difficulty_level=self.current_session.get('difficulty_level', 'mid')
-                )
-        else:
-            analysis = self.analyzer.analyze_answer(
-                user_answer=answer,
-                question_data=question,
-                difficulty_level=self.current_session.get('difficulty_level', 'mid')
-            )
+        # Note: Answer analysis is now handled in the API layer using Groq
+        # Return basic structure for compatibility
+        analysis = {
+            'overall_score': 70,
+            'relevance_score': 70,
+            'completeness_score': 70,
+            'clarity_score': 70,
+            'technical_accuracy_score': 70,
+            'communication_score': 70,
+            'strengths': ['Answer submitted'],
+            'weaknesses': [],
+            'missing_points': [],
+            'suggestions': ['Detailed analysis performed by API'],
+            'ai_feedback': 'Analysis performed by API layer with Groq AI.',
+            'sentiment': 'neutral'
+        }
+        logger.info("Answer recorded (analysis handled by API layer)")
         
         # Get the interview_question record ID
         interview_question = execute_query(

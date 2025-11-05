@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import JobList from '../../components/jobs/JobList';
 import JobMatcher from '../../components/jobs/JobMatcher';
+import JobCompatibilityAnalyzer from '../../components/jobs/JobCompatibilityAnalyzer';
 import { JobPost, jobsService } from '../../services/jobs.service';
 import JobCard from '../../components/jobs/JobCard';
 
-type TabType = 'browse' | 'matched' | 'search';
+type TabType = 'browse' | 'matched' | 'search' | 'compatibility';
 
 interface SearchFilters {
   keywords?: string;
@@ -32,6 +33,7 @@ const JobsPage = () => {
     { id: 'browse' as TabType, label: 'Browse All Jobs', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
     { id: 'matched' as TabType, label: 'Matched for You', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
     { id: 'search' as TabType, label: 'Advanced Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+    { id: 'compatibility' as TabType, label: 'Compatibility Analyzer', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
   ];
 
   const handleSearchFilterChange = (key: keyof SearchFilters, value: string | boolean) => {
@@ -362,6 +364,13 @@ const JobsPage = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Compatibility Analyzer Tab */}
+          {activeTab === 'compatibility' && (
+            <div className="p-6">
+              <JobCompatibilityAnalyzer />
             </div>
           )}
         </div>

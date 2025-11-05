@@ -1,7 +1,13 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import InterviewSetup from '../../components/interview/InterviewSetup.tsx';
 import InterviewChat from '../../components/interview/InterviewChat.tsx';
 import InterviewHistory from '../../components/interview/InterviewHistory.tsx';
+import { 
+  PlusCircleIcon, 
+  ChatBubbleLeftRightIcon, 
+  ClockIcon 
+} from '@heroicons/react/24/outline';
 
 type TabType = 'new' | 'active' | 'history';
 
@@ -13,21 +19,24 @@ const InterviewPage = () => {
     { 
       id: 'new' as TabType, 
       label: 'New Interview', 
-      icon: 'M12 4v16m8-8H4',
-      description: 'Start a new practice interview'
+      Icon: PlusCircleIcon,
+      description: 'Start a new practice interview',
+      gradient: 'from-electric-cyan to-deep-ocean',
     },
     { 
       id: 'active' as TabType, 
       label: 'Active Session', 
-      icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+      Icon: ChatBubbleLeftRightIcon,
       description: 'Continue your current interview',
-      badge: activeSessionId ? '1' : null
+      badge: activeSessionId ? '1' : null,
+      gradient: 'from-stellar-purple to-royal-purple',
     },
     { 
       id: 'history' as TabType, 
       label: 'Interview History', 
-      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-      description: 'Review past interviews'
+      Icon: ClockIcon,
+      description: 'Review past interviews',
+      gradient: 'from-cosmic-gold to-amber-gold',
     },
   ];
 
@@ -42,61 +51,112 @@ const InterviewPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="relative min-h-screen">
+      {/* Particle Background */}
+      <div className="fixed inset-0 particle-bg opacity-30 pointer-events-none" />
+      
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🎭 AI Interview Simulator
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3">
+            <span className="glow-text">AI Interview Simulator</span>
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-slate-600 dark:text-silver-mist">
             Practice your interview skills with our AI-powered interviewer. Get instant feedback and improve!
           </p>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group relative flex-1 py-4 px-6 text-center font-medium text-sm transition-all ${
-                    activeTab === tab.id
-                      ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d={tab.icon}
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">{tab.label}</span>
-                      {tab.badge && (
-                        <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                          {tab.badge}
-                        </span>
-                      )}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass-card rounded-2xl mb-8 overflow-hidden"
+        >
+          <nav className="flex flex-col sm:flex-row">
+            {tabs.map((tab, index) => (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`group relative flex-1 py-6 px-6 transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r ' + tab.gradient + ' bg-opacity-20'
+                    : 'hover:bg-white/5'
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Active indicator */}
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className={`absolute inset-0 bg-gradient-to-r ${tab.gradient} opacity-10`}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                )}
+                
+                <div className="relative flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${
+                      activeTab === tab.id 
+                        ? `bg-gradient-to-r ${tab.gradient}` 
+                        : 'bg-white/5'
+                    } transition-all group-hover:scale-110`}>
+                      <tab.Icon className={`w-6 h-6 ${
+                        activeTab === tab.id ? 'text-white' : 'text-slate-400 dark:text-silver-mist'
+                      }`} />
                     </div>
-                    <span className="text-xs text-gray-500 hidden md:block">
-                      {tab.description}
+                    <span className={`font-medium ${
+                      activeTab === tab.id 
+                        ? 'text-midnight dark:text-white' 
+                        : 'text-slate-600 dark:text-silver-mist'
+                    }`}>
+                      {tab.label}
                     </span>
+                    {tab.badge && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-glow-purple"
+                      >
+                        {tab.badge}
+                      </motion.span>
+                    )}
                   </div>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
+                  <span className={`text-xs hidden md:block ${
+                    activeTab === tab.id 
+                      ? 'text-slate-600 dark:text-silver-mist' 
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}>
+                    {tab.description}
+                  </span>
+                </div>
+
+                {/* Border indicator */}
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="tabBorder"
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${tab.gradient}`}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            ))}
+          </nav>
+        </motion.div>
 
         {/* Tab Content */}
-        <div className="transition-all duration-300">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+        >
           {activeTab === 'new' && (
             <InterviewSetup onSessionStart={handleSessionStart} />
           )}
@@ -114,7 +174,7 @@ const InterviewPage = () => {
               setActiveTab('active');
             }} />
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

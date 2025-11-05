@@ -13,4 +13,6 @@ echo "🌐 Server will be available at: http://127.0.0.1:8000"
 echo "📚 API Docs: http://127.0.0.1:8000/docs"
 echo ""
 
-python backend/test_api.py
+# Start the FastAPI server with uvicorn
+cd /home/firas/Utopia/backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

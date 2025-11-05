@@ -19,12 +19,11 @@ export interface JobPost {
   company: string;
   location: string;
   region?: string;
-  type?: string;
-  job_type?: string; // Backend uses job_type
+  type: string;
   experience_level?: string;
-  description?: string; // Optional in list views
+  description: string;
   required_skills: string[];
-  preferred_skills?: string[]; // Optional in list views
+  preferred_skills: string[];
   salary_range?: SalaryRange;
   posted_date?: string;
   remote: boolean;
@@ -114,6 +113,33 @@ export interface MarketInsights {
   top_companies: Array<{ company: string; count: number }>;
 }
 
+// Job Compatibility Analysis
+export interface JobCompatibilityRequest {
+  resume_id: number;
+  job_description: string;
+  job_title?: string;
+  company?: string;
+  required_skills?: string[];
+}
+
+export interface JobCompatibilityResponse {
+  resume_id: number;
+  job_title?: string;
+  company?: string;
+  overall_match_score: number;
+  skill_match_score: number;
+  experience_match_score: number;
+  education_match_score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  strengths: string[];
+  gaps: string[];
+  recommendations: string[];
+  ai_summary?: string;
+  ai_detailed_analysis?: string;
+  analyzed_at: string;
+}
+
 class JobsService {
   /**
    * Scrape jobs from external APIs
@@ -137,7 +163,8 @@ class JobsService {
     pageSize: number = 20,
     location?: string,
     jobType?: string,
-    remoteOnly: boolean = false
+    remoteOnly: boolean = false,
+    experienceLevel?: string
   ): Promise<JobListResponse> {
     const params: Record<string, any> = {
       page,
@@ -147,6 +174,7 @@ class JobsService {
     if (location) params.location = location;
     if (jobType) params.job_type = jobType;
     if (remoteOnly) params.remote_only = true;
+    if (experienceLevel) params.experience_level = experienceLevel;
 
     return await apiClient.get<JobListResponse>('/jobs/list', { params });
   }
@@ -170,6 +198,13 @@ class JobsService {
    */
   async getMarketInsights(): Promise<MarketInsights> {
     return await apiClient.get<MarketInsights>('/jobs/market-insights');
+  }
+
+  /**
+   * Analyze compatibility between a resume and job description
+   */
+  async analyzeJobCompatibility(request: JobCompatibilityRequest): Promise<JobCompatibilityResponse> {
+    return await apiClient.post<JobCompatibilityResponse>('/jobs/compatibility', request);
   }
 }
 

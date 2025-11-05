@@ -3,7 +3,16 @@ import type { AuthResponse, LoginRequest, RegisterRequest, User } from '../types
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/login', data);
+    // OAuth2 expects form-urlencoded data with 'username' field for email
+    const formData = new URLSearchParams();
+    formData.append('username', data.email);
+    formData.append('password', data.password);
+    
+    const response = await apiClient.post<AuthResponse>('/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
     
     // Store token and user in localStorage
     localStorage.setItem('access_token', response.access_token);

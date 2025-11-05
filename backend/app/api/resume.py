@@ -34,18 +34,23 @@ from psycopg2.extras import Json
 project_root = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+from config import database as db_module
+
 from backend.app.models.resume import (
     ResumeUploadResponse,
     ResumeAnalysisRequest,
     ResumeAnalysisResponse,
     ResumeEnhancementRequest,
+    ResumeEnhancementDownloadRequest,
     ResumeEnhancementResponse,
     ResumeListResponse,
     ResumeDeleteResponse,
     ResumeListItem,
     ATSScore,
     SectionScore,
-    EnhancementSuggestion
+    EnhancementSuggestion,
+    CoverLetterRequest,
+    CoverLetterResponse
 )
 from backend.app.core.database import get_database, DatabaseWrapper
 from backend.app.api.deps import get_current_active_user
@@ -55,6 +60,7 @@ from backend.app.models.user import UserResponse
 from utils.resume_parser import ResumeParser
 from utils.resume_analyzer import ResumeAnalyzer
 from utils.resume_enhancer import ResumeEnhancer
+from utils.cover_letter_generator import CoverLetterGenerator
 from utils.resume_templates import ResumeTemplateGenerator
 
 
@@ -126,7 +132,14 @@ async def upload_resume(
         parser = ResumeParser()
         parsed_data = parser.parse_file(str(file_path))
         
-        # Store in database
+        # Store in database - save complete parsed data including raw_text for analysis
+        parsed_data_to_store = {
+            'raw_text': parsed_data.get('raw_text', ''),
+            'sections': parsed_data.get('sections', {}),
+            'structured_data': parsed_data.get('structured_data', {}),
+            'metadata': parsed_data.get('metadata', {})
+        }
+        
         resume_id = db.insert_one(
             "resumes",
             {
@@ -136,7 +149,7 @@ async def upload_resume(
                 "file_size": file_size,
                 "file_type": file_ext[1:],  # Remove dot
                 "parsed_text": parsed_data.get('raw_text', ''),  # Parser returns 'raw_text', not 'text'
-                "parsed_data": Json(parsed_data.get('sections', {})),  # JSONB field - use psycopg2.Json
+                "parsed_data": Json(parsed_data_to_store),  # JSONB field - use psycopg2.Json
                 "word_count": parsed_data.get('metadata', {}).get('word_count', 0),
                 "uploaded_at": datetime.utcnow()
             }
@@ -221,10 +234,14 @@ async def analyze_resume(
         analyzer = ResumeAnalyzer(use_ai_models=False)
         
         # Reconstruct parsed_resume format expected by analyzer
+        # Extract structured_data from parsed_data if available
+        structured_data = parsed_sections.get('structured_data', {}) if isinstance(parsed_sections, dict) else {}
+        sections_only = parsed_sections.get('sections', parsed_sections) if isinstance(parsed_sections, dict) else parsed_sections
+        
         parsed_resume_data = {
             'raw_text': parsed_text,
-            'sections': parsed_sections,
-            'structured_data': {},  # Leave empty for now
+            'sections': sections_only,
+            'structured_data': structured_data,
             'metadata': {
                 'word_count': resume.get('word_count', 0),
                 'filename': resume.get('filename', '')
@@ -413,10 +430,14 @@ async def enhance_resume(
         enhancer = ResumeEnhancer()
         
         # Prepare data for enhancer (needs analysis too)
+        # Extract structured_data from parsed_data if available
+        structured_data = parsed_sections.get('structured_data', {}) if isinstance(parsed_sections, dict) else {}
+        sections_only = parsed_sections.get('sections', parsed_sections) if isinstance(parsed_sections, dict) else parsed_sections
+        
         parsed_resume_data = {
             'raw_text': parsed_text,
-            'sections': parsed_sections,
-            'structured_data': {},
+            'sections': sections_only,
+            'structured_data': structured_data,
             'metadata': {
                 'word_count': resume.get('word_count', 0),
                 'filename': resume.get('filename', '')
@@ -435,25 +456,40 @@ async def enhance_resume(
         # Convert to response format
         suggestions = []
         
-        # Extract enhancements from different sections
-        enhanced_sections = enhancement_result.get('enhanced_resume', {}).get('sections', {})
-        original_sections = parsed_sections
+        # Extract enhancements - enhancer returns flat structure with 'summary', 'experience', 'skills'
+        changes_made = enhancement_result.get('changes_made', [])
         
-        # Create suggestions by comparing original and enhanced
-        for section_name in ['summary', 'experience', 'skills']:
-            if section_name in enhanced_sections and section_name in original_sections:
-                original = str(original_sections.get(section_name, ''))[:200]
-                enhanced = str(enhanced_sections.get(section_name, ''))[:200]
-                
-                if original != enhanced:
-                    suggestions.append(EnhancementSuggestion(
-                        section=section_name.title(),
-                        original_text=original,
-                        enhanced_text=enhanced,
-                        improvement_type=request.enhancement_type,
-                        impact='high',
-                        explanation=f"Enhanced {section_name} section with better wording and structure"
-                    ))
+        # Process changes into suggestions
+        for change in changes_made:
+            section = change.get('section', 'General')
+            change_type = change.get('type', 'enhanced')
+            description = change.get('description', '')
+            
+            # Determine impact based on section
+            impact = 'high' if section in ['Professional Summary', 'Experience'] else 'medium'
+            
+            suggestions.append(EnhancementSuggestion(
+                section=section,
+                original_text=f"Original {section.lower()} content",
+                enhanced_text=description,
+                improvement_type=request.enhancement_type,
+                impact=impact,
+                explanation=description
+            ))
+        
+        # Add specific enhancement details from the result
+        enhanced_summary = enhancement_result.get('summary', '')
+        original_summary = parsed_resume_data.get('structured_data', {}).get('summary', '')
+        
+        if enhanced_summary and enhanced_summary != original_summary:
+            suggestions.append(EnhancementSuggestion(
+                section='Professional Summary',
+                original_text=original_summary[:200] if original_summary else 'Not provided',
+                enhanced_text=enhanced_summary[:200],
+                improvement_type=request.enhancement_type,
+                impact='high',
+                explanation='Enhanced professional summary with stronger language and better structure'
+            ))
         
         # If no specific changes, create general suggestions
         if not suggestions:
@@ -654,14 +690,14 @@ async def download_original_resume(
 @router.post("/{resume_id}/download-enhanced")
 async def download_enhanced_resume(
     resume_id: int,
-    request: ResumeEnhancementRequest,
+    request: ResumeEnhancementDownloadRequest,
     current_user: UserResponse = Depends(get_current_active_user),
     db: DatabaseWrapper = Depends(get_database)
 ):
     """
     Generate and download an enhanced resume with AI improvements applied
     
-    - **resume_id**: ID of resume to enhance
+    - **resume_id**: ID of resume to enhance (in URL path)
     - **enhancement_type**: Type of enhancement (full, grammar, action_verbs, quantify, ats_optimize)
     - **target_job**: Optional target job for tailored improvements
     - **selected_improvements**: Optional list of specific improvement IDs to apply
@@ -695,28 +731,15 @@ async def download_enhanced_resume(
         enhanced_dir = UPLOAD_DIR / "enhanced"
         enhanced_dir.mkdir(exist_ok=True)
         
-        # Get parsed resume data and analysis
-        parsed_data_json = resume.get('parsed_data')
+        # IMPORTANT: Re-parse the original file to get fresh, complete data
+        # This ensures we have all the actual resume content, not just stored metadata
+        logger.info(f"Re-parsing original file for enhancement: {original_path}")
+        parser = ResumeParser()
+        parsed_data = parser.parse_file(str(original_path))
+        logger.info(f"Parsed data contains {len(parsed_data.get('raw_text', ''))} characters")
+        
+        # Get analysis data if available
         analysis_data_json = resume.get('analysis_data')
-        
-        # Prepare parsed data
-        if parsed_data_json:
-            parsed_data = json.loads(parsed_data_json) if isinstance(parsed_data_json, str) else parsed_data_json
-        else:
-            # Create minimal parsed data from what we have
-            parsed_data = {
-                'raw_text': resume.get('parsed_text', ''),
-                'sections': {},
-                'structured_data': {
-                    'skills': [],
-                    'experience': [],
-                    'education': []
-                },
-                'metadata': {
-                    'filename': resume.get('filename', 'resume.pdf')
-                }
-            }
-        
         analysis_data = json.loads(analysis_data_json) if isinstance(analysis_data_json, str) and analysis_data_json else {}
         
         # Generate enhancement - this returns a dict with enhanced sections
@@ -791,7 +814,7 @@ async def download_enhanced_resume(
             'created_at': datetime.now()
         }
         
-        db.execute(
+        db_module.execute_query(
             """
             INSERT INTO resume_enhancements 
             (resume_id, enhancement_type, suggestions_count, file_path, created_at)
@@ -808,7 +831,8 @@ async def download_enhanced_resume(
                 suggestions_count,
                 str(enhanced_path),
                 datetime.now()
-            )
+            ),
+            fetch=False
         )
         
         # Return enhanced file
@@ -930,4 +954,128 @@ async def download_resume_template(template_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to download template: {str(e)}"
+        )
+
+
+@router.post("/generate-cover-letter", response_model=CoverLetterResponse)
+async def generate_cover_letter(
+    request: CoverLetterRequest,
+    current_user: UserResponse = Depends(get_current_active_user),
+    db: DatabaseWrapper = Depends(get_database)
+):
+    """
+    Generate a personalized cover letter based on resume and job description
+    
+    - **resume_id**: ID of the resume to use
+    - **job_title**: Target job title/position
+    - **company**: Company name
+    - **job_description**: Full job description
+    - **tone**: Writing tone (professional, enthusiastic, formal, conversational)
+    - **length**: Letter length (short, medium, long)
+    - **highlights**: Optional specific achievements to emphasize
+    
+    Returns generated cover letter with sections and suggestions
+    """
+    try:
+        logger.info(f"User {current_user.id} generating cover letter for resume {request.resume_id}")
+        
+        # Verify resume exists and belongs to user
+        resume_data = db.get_one(
+            "resumes",
+            "id = %s AND user_id = %s",
+            (request.resume_id, current_user.id)
+        )
+        
+        if not resume_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Resume with ID {request.resume_id} not found"
+            )
+        
+        
+        # Parse stored data
+        try:
+            parsed_text = resume_data['parsed_text'] or resume_data.get('raw_text', '')
+            parsed_data = resume_data.get('parsed_data', {})
+            # Handle JSONB field - it's already a dict from PostgreSQL
+            if isinstance(parsed_data, str):
+                parsed_sections = json.loads(parsed_data) if parsed_data else {}
+            else:
+                parsed_sections = parsed_data if parsed_data else {}
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to load resume data: {str(e)}"
+            )
+        
+        if not parsed_text:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Resume has not been parsed yet. Please re-upload the resume."
+            )
+        
+        # Reconstruct parsed_resume format
+        structured_data = parsed_sections.get('structured_data', {}) if isinstance(parsed_sections, dict) else {}
+        sections_only = parsed_sections.get('sections', parsed_sections) if isinstance(parsed_sections, dict) else parsed_sections
+        
+        parsed_resume = {
+            'raw_text': parsed_text,
+            'sections': sections_only,
+            'structured_data': structured_data,
+            'metadata': {
+                'word_count': resume_data.get('word_count', 0),
+                'filename': resume_data.get('filename', '')
+            }
+        }
+        
+        # Add analysis data if available
+        if resume_data.get('analysis_result'):
+            analysis = resume_data['analysis_result']
+            if isinstance(analysis, str):
+                analysis = json.loads(analysis)
+            
+            # Merge analysis data with parsed data
+            if 'skills' in analysis:
+                parsed_resume['skills'] = analysis['skills']
+            if 'experience_years' in analysis:
+                parsed_resume['experience_years'] = analysis['experience_years']
+            if 'education' in analysis:
+                parsed_resume['education'] = analysis['education']
+        
+        # Generate cover letter
+        generator = CoverLetterGenerator()
+        
+        result = generator.generate(
+            parsed_resume=parsed_resume,
+            job_description=request.job_description,
+            job_title=request.job_title,
+            company=request.company,
+            tone=request.tone,
+            length=request.length,
+            highlights=request.highlights
+        )
+        
+        if 'error' in result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result['error']
+            )
+        
+        logger.info(f"✓ Cover letter generated successfully ({result['word_count']} words)")
+        
+        return CoverLetterResponse(
+            cover_letter=result['cover_letter'],
+            word_count=result['word_count'],
+            sections=result['sections'],
+            suggestions=result['suggestions'],
+            metadata=result['metadata']
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating cover letter: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate cover letter: {str(e)}"
         )

@@ -126,7 +126,7 @@ class JobMatch(BaseModel):
 # Job Matching Request
 class JobMatchingRequest(BaseModel):
     """Request to find matching jobs for a resume"""
-    resume_id: int = Field(..., description="Resume ID to match against jobs")
+    resume_id: Optional[int] = Field(None, description="Resume ID to match against jobs (optional)")
     limit: int = Field(default=10, ge=1, le=50, description="Maximum number of matches to return")
     min_score: int = Field(default=50, ge=0, le=100, description="Minimum match score threshold")
     fetch_fresh_jobs: bool = Field(
@@ -235,3 +235,40 @@ class JobDetailResponse(BaseModel):
         default_factory=list,
         description="Similar job recommendations"
     )
+
+
+# Job Compatibility Analysis Request
+class JobCompatibilityRequest(BaseModel):
+    """Request to analyze compatibility between CV and job description"""
+    resume_id: int = Field(..., description="Resume ID to analyze")
+    job_description: str = Field(..., min_length=50, description="Job description text")
+    job_title: Optional[str] = Field(None, description="Job title (optional)")
+    company: Optional[str] = Field(None, description="Company name (optional)")
+    required_skills: Optional[List[str]] = Field(None, description="Required skills (optional)")
+
+
+# Job Compatibility Analysis Response
+class JobCompatibilityResponse(BaseModel):
+    """Detailed compatibility analysis between CV and job"""
+    resume_id: int = Field(..., description="Resume ID analyzed")
+    job_title: Optional[str] = Field(None, description="Job title")
+    company: Optional[str] = Field(None, description="Company name")
+    
+    # Scores
+    overall_match_score: int = Field(..., ge=0, le=100, description="Overall compatibility score (0-100)")
+    skill_match_score: int = Field(..., ge=0, le=100, description="Skills match score")
+    experience_match_score: int = Field(..., ge=0, le=100, description="Experience match score")
+    education_match_score: int = Field(..., ge=0, le=100, description="Education match score")
+    
+    # Analysis
+    matched_skills: List[str] = Field(default_factory=list, description="Skills from CV that match job requirements")
+    missing_skills: List[str] = Field(default_factory=list, description="Required skills missing from CV")
+    strengths: List[str] = Field(default_factory=list, description="Candidate strengths for this role")
+    gaps: List[str] = Field(default_factory=list, description="Areas where candidate may need improvement")
+    recommendations: List[str] = Field(default_factory=list, description="Recommendations to improve match")
+    
+    # AI Analysis
+    ai_summary: Optional[str] = Field(None, description="AI-generated compatibility summary")
+    ai_detailed_analysis: Optional[str] = Field(None, description="Detailed AI analysis")
+    
+    analyzed_at: str = Field(..., description="When analysis was performed (ISO format)")

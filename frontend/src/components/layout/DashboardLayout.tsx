@@ -2,13 +2,14 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const [_sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
 
@@ -21,15 +22,74 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   ];
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
-      {/* Sidebar */}
+    <div className="h-screen flex overflow-hidden bg-pearl-white dark:bg-space-navy transition-colors">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+          
+          {/* Mobile sidebar */}
+          <div className="fixed inset-y-0 left-0 flex flex-col w-64 glass-card border-r border-electric-cyan/20 z-30 md:hidden">
+            <div className="flex items-center justify-between flex-shrink-0 px-4 pt-5">
+              <h1 className="text-2xl font-bold glow-text">UtopiaHire</h1>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-500"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="sr-only">Close sidebar</span>
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="mt-5 flex-grow flex flex-col overflow-y-auto">
+              <nav className="flex-1 px-2 space-y-1">
+                {navigation.map((item) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`${
+                        isActive
+                          ? 'bg-gradient-to-r from-electric-cyan/20 to-stellar-purple/20 text-electric-cyan border-l-2 border-electric-cyan'
+                          : 'text-slate-600 dark:text-silver-mist hover:bg-electric-cyan/10 hover:text-electric-cyan'
+                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all`}
+                    >
+                      <svg
+                        className={`${
+                          isActive ? 'text-electric-cyan' : 'text-slate-400 dark:text-silver-mist group-hover:text-electric-cyan'
+                        } mr-3 flex-shrink-0 h-6 w-6 transition-colors`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                      </svg>
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Desktop Sidebar */}
       <div className="hidden md:flex md:flex-shrink-0">
         <div className="flex flex-col w-64">
-          <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r border-gray-200">
+          <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto glass-card border-r border-electric-cyan/20">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-2xl font-bold text-primary-600">UtopiaHire</h1>
+              <h1 className="text-2xl font-bold glow-text">UtopiaHire</h1>
             </div>
-            <div className="mt-5 flex-grow flex flex-col">
+                        <div className="mt-5 flex-grow flex flex-col">
               <nav className="flex-1 px-2 space-y-1">
                 {navigation.map((item) => {
                   const isActive = location.pathname === item.href;
@@ -39,14 +99,14 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       to={item.href}
                       className={`${
                         isActive
-                          ? 'bg-primary-50 text-primary-600'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                          ? 'bg-gradient-to-r from-electric-cyan/20 to-stellar-purple/20 text-electric-cyan border-l-2 border-electric-cyan'
+                          : 'text-slate-600 dark:text-silver-mist hover:bg-electric-cyan/10 hover:text-electric-cyan'
+                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all`}
                     >
                       <svg
                         className={`${
-                          isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'
-                        } mr-3 flex-shrink-0 h-6 w-6`}
+                          isActive ? 'text-electric-cyan' : 'text-slate-400 dark:text-silver-mist group-hover:text-electric-cyan'
+                        } mr-3 flex-shrink-0 h-6 w-6 transition-colors`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -66,10 +126,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
         {/* Top bar */}
-        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
+        <div className="relative z-10 flex-shrink-0 flex h-16 glass-card shadow-lg">
           <button
             type={"button" as const}
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 md:hidden"
+            className="px-4 border-r border-electric-cyan/20 text-slate-500 dark:text-silver-mist hover:text-electric-cyan focus:outline-none focus:ring-2 focus:ring-inset focus:ring-electric-cyan md:hidden transition-colors"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>
@@ -81,13 +141,14 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <div className="flex-1 flex">
               {/* Search can go here */}
             </div>
-            <div className="ml-4 flex items-center md:ml-6">
+            <div className="ml-4 flex items-center md:ml-6 gap-4">
+              <ThemeToggle />
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm font-medium text-gray-700">{user?.full_name}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-silver-mist">{user?.full_name}</span>
                   <button
                     onClick={logout}
-                    className="text-sm text-gray-500 hover:text-gray-700"
+                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-silver-mist dark:hover:text-white transition-colors"
                   >
                     Logout
                   </button>

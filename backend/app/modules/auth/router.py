@@ -4,34 +4,33 @@ User registration, login, token refresh, profile management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from datetime import datetime, timedelta
-import sys
-import os
-from pathlib import Path
+from fastapi.security import OAuth2PasswordRequestForm
 
-# Add project root to path
-project_root = Path(__file__).resolve().parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from backend.app.models.user import (
-    UserRegister, UserLogin, UserUpdate, 
-    TokenResponse, UserResponse, MessageResponse
+from .service import AuthService
+from .schemas import (
+    UserRegisterSchema,
+    UserLoginSchema,
+    UserUpdateSchema,
+    UserResponseSchema,
+    TokenResponseSchema,
+    MessageResponseSchema
 )
-from backend.app.core.security import (
-    get_password_hash, verify_password, create_access_token
-)
-from backend.app.core.config import settings
-from backend.app.core.database import get_database, DatabaseWrapper
-from backend.app.api.deps import get_current_user, get_current_active_user
+from .dependencies import get_current_user, get_current_active_user
+from app.shared.database import get_database, DatabaseWrapper
 
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def get_auth_service(db: DatabaseWrapper = Depends(get_database)) -> AuthService:
+    """Dependency to get auth service instance."""
+    return AuthService(db)
+
+
+@router.post("/register", response_model=TokenResponseSchema, status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: UserRegister,
-    db: DatabaseWrapper = Depends(get_database)
+    user_data: UserRegisterSchema,
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Register a new user
@@ -42,105 +41,30 @@ async def register(
     
     Returns JWT access token and user information
     """
-    # Check if user already exists
-    existing_user = db.get_one("users", "email = %s", (user_data.email,))
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Hash password
-    password_hash = get_password_hash(user_data.password)
-    
-    # Create user in database
-    user_id = db.insert_one(
-        "users",
-        {
-            "email": user_data.email,
-            "name": user_data.full_name,  # DB uses 'name', not 'full_name'
-            "password_hash": password_hash,
-            "created_at": datetime.utcnow()
-        }
-    )
-    
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user"
-        )
-    
-    # Get created user
-    user = db.get_one("users", "id = %s", (user_id,))
-    
-    # Map 'name' to 'full_name' for response
-    if 'name' in user:
-        user['full_name'] = user['name']
-    
-    # Create access token
-    access_token = create_access_token(
-        data={"sub": str(user_id), "email": user_data.email}
-    )
-    
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse(**user)
-    )
+    return await auth_service.register_user(user_data)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponseSchema)
 async def login(
-    credentials: UserLogin,
-    db: DatabaseWrapper = Depends(get_database)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Login with email and password
     
-    - **email**: User's email address
+    - **username**: User's email address (OAuth2 spec uses 'username')
     - **password**: User's password
     
     Returns JWT access token and user information
     """
-    # Get user from database
-    user = db.get_one("users", "email = %s", (credentials.email,))
-    
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Verify password
-    if not verify_password(credentials.password, user["password_hash"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Map 'name' to 'full_name' for response
-    if 'name' in user:
-        user['full_name'] = user['name']
-    
-    # Create access token
-    access_token = create_access_token(
-        data={"sub": str(user["id"]), "email": user["email"]}
-    )
-    
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse(**user)
-    )
+    # Convert form data to schema (OAuth2 uses 'username' field)
+    credentials = UserLoginSchema(email=form_data.username, password=form_data.password)
+    return await auth_service.login_user(credentials)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponseSchema)
 async def get_current_user_info(
-    current_user: UserResponse = Depends(get_current_active_user)
+    current_user: UserResponseSchema = Depends(get_current_active_user)
 ):
     """
     Get current authenticated user information
@@ -150,86 +74,30 @@ async def get_current_user_info(
     return current_user
 
 
-@router.put("/profile", response_model=UserResponse)
+@router.put("/profile", response_model=UserResponseSchema)
 async def update_profile(
-    update_data: UserUpdate,
-    current_user: UserResponse = Depends(get_current_active_user),
-    db: DatabaseWrapper = Depends(get_database)
+    update_data: UserUpdateSchema,
+    current_user: UserResponseSchema = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Update user profile
     
     - **full_name**: Update full name (optional)
     - **email**: Update email address (optional)
+    - **phone**: Update phone number (optional)
+    - **location**: Update location (optional)
     - **new_password**: Change password (requires current_password)
     
     Requires valid JWT token in Authorization header
     """
-    updates = {}
-    
-    # Update full name
-    if update_data.full_name is not None:
-        updates["name"] = update_data.full_name  # DB uses 'name', not 'full_name'
-    
-    # Update email
-    if update_data.email is not None:
-        # Check if email is already taken
-        existing = db.get_one("users", "email = %s AND id != %s", 
-                             (update_data.email, current_user.id))
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already in use"
-            )
-        updates["email"] = update_data.email
-    
-    # Update password
-    if update_data.new_password is not None:
-        if update_data.current_password is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password required to set new password"
-            )
-        
-        # Verify current password
-        user = db.get_one("users", "id = %s", (current_user.id,))
-        if not verify_password(update_data.current_password, user["password_hash"]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Current password is incorrect"
-            )
-        
-        updates["password_hash"] = get_password_hash(update_data.new_password)
-    
-    # Update timestamp
-    updates["updated_at"] = datetime.utcnow()
-    
-    # Perform update
-    if updates:
-        success = db.update_one(
-            "users",
-            updates,
-            "id = %s",
-            (current_user.id,)
-        )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update profile"
-            )
-    
-    # Get updated user
-    updated_user = db.get_one("users", "id = %s", (current_user.id,))
-    # Map 'name' to 'full_name' for response
-    if 'name' in updated_user:
-        updated_user['full_name'] = updated_user['name']
-    return UserResponse(**updated_user)
+    return await auth_service.update_profile(current_user.id, update_data)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponseSchema)
 async def refresh_token(
-    current_user: UserResponse = Depends(get_current_active_user)
+    current_user: UserResponseSchema = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Refresh JWT access token
@@ -237,23 +105,13 @@ async def refresh_token(
     Requires valid (non-expired) JWT token in Authorization header
     Returns new JWT token with extended expiry
     """
-    # Create new access token
-    access_token = create_access_token(
-        data={"sub": str(current_user.id), "email": current_user.email}
-    )
-    
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=current_user
-    )
+    return await auth_service.refresh_token(current_user)
 
 
-@router.delete("/account", response_model=MessageResponse)
+@router.delete("/account", response_model=MessageResponseSchema)
 async def delete_account(
-    current_user: UserResponse = Depends(get_current_active_user),
-    db: DatabaseWrapper = Depends(get_database)
+    current_user: UserResponseSchema = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Delete user account (soft delete - marks as inactive)
@@ -261,16 +119,4 @@ async def delete_account(
     Requires valid JWT token in Authorization header
     This is a destructive operation and cannot be undone
     """
-    # For now, actually delete (can implement soft delete later)
-    success = db.delete_one("users", "id = %s", (current_user.id,))
-    
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete account"
-        )
-    
-    return MessageResponse(
-        message="Account successfully deleted",
-        success=True
-    )
+    return await auth_service.delete_account(current_user.id)

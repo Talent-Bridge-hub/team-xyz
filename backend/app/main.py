@@ -10,6 +10,16 @@ from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 import time
 import logging
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+logger_init = logging.getLogger(__name__)
+logger_init.info(f"✅ Loaded environment from: {env_path}")
+logger_init.info(f"   GROQ_API_KEY: {'SET' if os.getenv('GROQ_API_KEY') else 'NOT SET'}")
 
 from app.core.config import settings
 from app.core.database import db_manager
@@ -84,13 +94,23 @@ async def add_process_time_header(request: Request, call_next):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors"""
+    # Convert bytes to strings in error details
+    errors = exc.errors()
+    for error in errors:
+        if 'input' in error and isinstance(error['input'], bytes):
+            error['input'] = error['input'].decode('utf-8', errors='replace')
+        if 'ctx' in error and isinstance(error['ctx'], dict):
+            for key, value in error['ctx'].items():
+                if isinstance(value, bytes):
+                    error['ctx'][key] = value.decode('utf-8', errors='replace')
+    
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "Invalid input data",
-                "details": exc.errors()
+                "details": errors
             }
         }
     )

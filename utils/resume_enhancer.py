@@ -82,33 +82,11 @@ class ResumeEnhancer:
         self.use_ai_models = use_ai_models
         self.models_loaded = False
         
-        if use_ai_models:
-            self._load_ai_models()
-    
-    def _load_ai_models(self):
-        """
-        Load AI models for advanced text generation
-        """
-        try:
-            from transformers import pipeline
-            
-            logger.info("Loading text generation models...")
-            
-            # Use a smaller model optimized for text improvement
-            self.paraphrase_model = pipeline(
-                "text2text-generation",
-                model="t5-small",
-                device=-1  # CPU
-            )
-            
-            self.models_loaded = True
-            logger.info("✓ AI models loaded successfully")
-            
-        except Exception as e:
-            logger.warning(f"Could not load AI models: {e}")
-            logger.info("Using rule-based enhancement")
-            self.use_ai_models = False
-            self.models_loaded = False
+        # Note: All AI text generation is now handled via Groq API if needed
+        # This enhancer focuses on rule-based improvements and formatting
+        self.use_ai_models = False
+        self.models_loaded = False
+        logger.info("Resume enhancer initialized (rule-based improvements)")
     
     def enhance_resume(self, parsed_resume: Dict, analysis: Dict) -> Dict:
         """

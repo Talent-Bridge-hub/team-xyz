@@ -50,7 +50,16 @@ class ApiClient {
   }
 
   async post<T>(url: string, data?: any, config?: any): Promise<T> {
-    const response = await this.client.post<T>(url, data, config);
+    // Merge config headers with default headers if provided
+    const finalConfig = config ? {
+      ...config,
+      headers: {
+        ...this.client.defaults.headers.common,
+        ...config.headers,
+      }
+    } : undefined;
+    
+    const response = await this.client.post<T>(url, data, finalConfig);
     return response.data;
   }
 
