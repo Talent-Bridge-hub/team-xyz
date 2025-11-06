@@ -31,9 +31,13 @@ const InterviewChat = ({ sessionId, onSessionComplete }: InterviewChatProps) => 
   const sessionLoadedRef = useRef<number | null>(null);
 
   useEffect(() => {
+    console.log('[INTERVIEW CHAT] useEffect triggered - sessionId:', sessionId, 'loaded:', sessionLoadedRef.current);
     if (sessionId && sessionId !== sessionLoadedRef.current) {
+      console.log('[INTERVIEW CHAT] Loading new session:', sessionId);
       sessionLoadedRef.current = sessionId;
       loadSession();
+    } else if (!sessionId) {
+      console.log('[INTERVIEW CHAT] No sessionId provided');
     }
   }, [sessionId]);
 
@@ -57,8 +61,15 @@ const InterviewChat = ({ sessionId, onSessionComplete }: InterviewChatProps) => 
       setLoading(true);
       setError(null);
       
+      console.log('[INTERVIEW CHAT] Fetching session details for:', sessionId);
       // Load session details
       const session = await interviewService.getSessionDetails(sessionId);
+      console.log('[INTERVIEW CHAT] Session details:', session);
+      
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      
       setSessionInfo(session);
 
       // If session is completed, redirect
@@ -111,8 +122,13 @@ const InterviewChat = ({ sessionId, onSessionComplete }: InterviewChatProps) => 
         }
       }
     } catch (err: any) {
-      console.error('Error loading session:', err);
-      setError(err.response?.data?.detail || 'Failed to load interview session');
+      console.error('[INTERVIEW CHAT] Error loading session:', err);
+      console.error('[INTERVIEW CHAT] Error details:', err.response?.data);
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to load interview session';
+      setError(errorMessage);
+      setMessages([]);
+      setSessionInfo(null);
+      setCurrentQuestion(null);
     } finally {
       setLoading(false);
     }
@@ -333,6 +349,25 @@ const InterviewChat = ({ sessionId, onSessionComplete }: InterviewChatProps) => 
     );
   }
 
+  if (error && !loading && !messages.length) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+        <svg className="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Interview</h3>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 250px)' }}>
@@ -347,14 +382,16 @@ const InterviewChat = ({ sessionId, onSessionComplete }: InterviewChatProps) => 
             </div>
             <div>
               <h3 className="font-semibold">AI Interviewer</h3>
-              {sessionInfo && (
+              {sessionInfo ? (
                 <p className="text-sm text-white/80">
-                  {sessionInfo.job_role} • {sessionInfo.session_type} • 
+                  {sessionInfo.job_role || 'Unknown Role'} • {sessionInfo.session_type || 'Interview'} • 
                   {currentQuestion 
-                    ? ` Question ${currentQuestion.question_number}/${currentQuestion.total_questions}`
-                    : ` ${sessionInfo.questions_answered}/${sessionInfo.total_questions} completed`
+                    ? ` Question ${currentQuestion.question_number || 1}/${currentQuestion.total_questions || sessionInfo.total_questions}`
+                    : ` ${sessionInfo.questions_answered || 0}/${sessionInfo.total_questions || 0} completed`
                   }
                 </p>
+              ) : (
+                <p className="text-sm text-white/80">Loading interview...</p>
               )}
             </div>
           </div>

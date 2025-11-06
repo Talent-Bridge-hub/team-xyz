@@ -31,12 +31,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
     # CORS Settings
-    BACKEND_CORS_ORIGINS: list = [
-        "http://localhost:3000",  # React dev server
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
+    @property
+    def BACKEND_CORS_ORIGINS(self) -> list:
+        """Parse CORS origins from environment variable or use defaults"""
+        cors_origins = os.getenv(
+            "BACKEND_CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+        )
+        if isinstance(cors_origins, str):
+            return [origin.strip() for origin in cors_origins.split(",")]
+        return cors_origins
     
     # Database Settings (PostgreSQL)
     DATABASE_URL: str = os.getenv(
@@ -57,6 +61,7 @@ class Settings(BaseSettings):
     
     # External API Keys (from existing .env)
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     SERPAPI_KEY: Optional[str] = os.getenv("SERPAPI_API_KEY")
     JSEARCH_API_KEY: Optional[str] = os.getenv("JSEARCH_API_KEY")
     GITHUB_TOKEN: Optional[str] = os.getenv("GITHUB_TOKEN")

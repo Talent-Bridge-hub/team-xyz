@@ -14,6 +14,7 @@ type TabType = 'new' | 'active' | 'history';
 const InterviewPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('new');
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const tabs = [
     { 
@@ -41,11 +42,16 @@ const InterviewPage = () => {
   ];
 
   const handleSessionStart = (sessionId: number) => {
+    console.log('[INTERVIEW PAGE] Starting session:', sessionId);
+    setIsLoadingSession(true);
     setActiveSessionId(sessionId);
     setActiveTab('active');
+    // Give the session ID time to propagate
+    setTimeout(() => setIsLoadingSession(false), 100);
   };
 
   const handleSessionComplete = () => {
+    console.log('[INTERVIEW PAGE] Session completed');
     setActiveSessionId(null);
     setActiveTab('history');
   };
@@ -162,17 +168,24 @@ const InterviewPage = () => {
           )}
 
           {activeTab === 'active' && (
-            <InterviewChat 
-              sessionId={activeSessionId} 
-              onSessionComplete={handleSessionComplete}
-            />
+            isLoadingSession ? (
+              <div className="glass-card rounded-2xl p-12 text-center">
+                <svg className="animate-spin h-12 w-12 text-electric-cyan mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-lg text-slate-600 dark:text-silver-mist">Loading interview session...</p>
+              </div>
+            ) : (
+              <InterviewChat 
+                sessionId={activeSessionId} 
+                onSessionComplete={handleSessionComplete}
+              />
+            )
           )}
 
           {activeTab === 'history' && (
-            <InterviewHistory onViewSession={(id: number) => {
-              setActiveSessionId(id);
-              setActiveTab('active');
-            }} />
+            <InterviewHistory onViewSession={handleSessionStart} />
           )}
         </motion.div>
       </div>

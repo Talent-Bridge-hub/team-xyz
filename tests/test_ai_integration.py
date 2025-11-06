@@ -10,7 +10,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.ai_answer_analyzer import AIAnswerAnalyzer
+from utils.groq_answer_analyzer import GroqAnswerAnalyzer as AIAnswerAnalyzer
 
 def test_ai_analyzer():
     """Test the AI answer analyzer"""

@@ -29,8 +29,9 @@ class GroqAnswerAnalyzer:
         if not self.api_key:
             raise ValueError("GROQ_API_KEY is required")
         
+        # Initialize Groq client
         self.client = Groq(api_key=self.api_key)
-        self.model = "llama-3.3-70b-versatile"
+        self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         
         logger.info(f"✅ Groq Answer Analyzer initialized with model: {self.model}")
     

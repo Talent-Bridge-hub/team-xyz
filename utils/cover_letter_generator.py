@@ -92,13 +92,12 @@ class CoverLetterGenerator:
             
             # Call Groq API
             logger.info(f"Generating cover letter for {job_title} at {company}...")
-            
             response = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert career coach and professional writer specializing in creating compelling cover letters that get interviews. You write personalized, ATS-friendly cover letters that highlight the candidate's strengths and match them to the job requirements."
+                        "content": "You are an expert career advisor and professional cover letter writer. Write compelling, ATS-friendly cover letters that showcase candidates' strengths."
                     },
                     {
                         "role": "user",

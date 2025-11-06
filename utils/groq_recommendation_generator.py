@@ -36,10 +36,9 @@ class GroqRecommendationGenerator:
         
         self.client = Groq(api_key=self.api_key)
         
-        # Use Groq's fastest models
-        # llama-3.3-70b-versatile: Best for complex reasoning
-        # llama-3.1-8b-instant: Fastest, good for quick tasks
-        self.model = "llama-3.3-70b-versatile"
+        # Use Groq model from environment (default: llama-3.3-70b-versatile)
+        # Other options: llama-3.1-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
+        self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         
         logger.info(f"✅ Groq AI Recommendation Generator initialized with model: {self.model}")
     

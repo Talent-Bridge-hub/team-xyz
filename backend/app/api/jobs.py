@@ -12,7 +12,7 @@ import json
 from psycopg2.extras import Json
 
 # Import models
-from backend.app.models.job import (
+from app.models.job import (
     JobScrapingRequest,
     JobScrapingResponse,
     JobMatchingRequest,
@@ -30,11 +30,11 @@ from backend.app.models.job import (
     JobCompatibilityRequest,
     JobCompatibilityResponse
 )
-from backend.app.models.user import UserResponse
+from app.models.user import UserResponse
 
 # Import dependencies
-from backend.app.api.deps import get_current_user
-from backend.app.core.database import DatabaseWrapper
+from app.api.deps import get_current_user
+from app.core.database import DatabaseWrapper
 
 # Import utilities
 import sys
