@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { Logo } from '../common/Logo';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -34,11 +35,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           
           {/* Mobile sidebar */}
           <div className="fixed inset-y-0 left-0 flex flex-col w-64 glass-card border-r border-electric-cyan/20 z-30 md:hidden">
-            <div className="flex items-center justify-between flex-shrink-0 px-4 pt-5">
-              <h1 className="text-2xl font-bold glow-text">UtopiaHire</h1>
+            <div className="flex items-center justify-between flex-shrink-0 px-4 pt-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <Logo variant="compact" />
               <button
                 type="button"
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
                 onClick={() => setSidebarOpen(false)}
               >
                 <span className="sr-only">Close sidebar</span>
@@ -86,8 +87,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className="hidden md:flex md:flex-shrink-0">
         <div className="flex flex-col w-64">
           <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto glass-card border-r border-electric-cyan/20">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-2xl font-bold glow-text">UtopiaHire</h1>
+            <div className="flex items-center flex-shrink-0 px-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <Logo variant="compact" />
             </div>
                         <div className="mt-5 flex-grow flex flex-col">
               <nav className="flex-1 px-2 space-y-1">
