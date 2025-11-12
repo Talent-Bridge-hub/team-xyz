@@ -1,7 +1,6 @@
 # UtopiaHire Database Documentation - Part 2
 ## Resume Enhancement, Skills Database & Jobs Module
 
-> **Generated:** November 6, 2025  
 > **Version:** 1.0.0  
 > **Database:** PostgreSQL 14+
 
