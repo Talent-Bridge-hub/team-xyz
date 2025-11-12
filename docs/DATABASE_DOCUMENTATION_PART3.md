@@ -1,10 +1,5 @@
 # UtopiaHire Database Documentation - Part 3
 ## Interview Module Tables
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+
-
 ---
 
 ## Table of Contents (Part 3)
