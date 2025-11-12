@@ -1,10 +1,6 @@
 # UtopiaHire Database Documentation - Part 4
 ## Digital Footprint Scanner Tables
 
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+
-
 ---
 
 ## Table of Contents (Part 4)
