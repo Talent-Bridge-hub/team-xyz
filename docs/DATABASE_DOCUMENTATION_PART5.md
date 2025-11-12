@@ -1,12 +1,6 @@
 # UtopiaHire Database Documentation - Part 5
 ## Indexes, Migrations & Best Practices
 
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+
-
----
-
 ## Table of Contents (Part 5)
 
 1. [Index Strategy](#index-strategy)
