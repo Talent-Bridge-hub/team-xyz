@@ -1,7 +1,6 @@
 # UtopiaHire Database Documentation - Part 1
 ## Overview, Architecture & Core Tables
-
-> **Generated:** November 6, 2025  
+ 
 > **Version:** 1.0.0  
 > **Database:** PostgreSQL 14+
 
