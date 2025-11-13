@@ -49,7 +49,9 @@ class ResumeEnhancementRequest(BaseModel):
 
 class ResumeEnhancementDownloadRequest(BaseModel):
     """Request for downloading enhanced resume (resume_id in URL path)"""
-    pass
+    enhancement_type: str = Field("full", description="Type of enhancement: full, grammar, action_verbs, quantify, ats_optimize")
+    target_job: Optional[str] = Field(None, description="Optional target job for tailored improvements")
+    selected_improvements: Optional[List[str]] = Field(None, description="Optional list of specific improvement IDs to apply")
 
 
 class CoverLetterRequest(BaseModel):

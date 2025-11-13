@@ -46,19 +46,82 @@ class ResumeParser:
     Parse resumes and extract structured information
     """
     
-    # Section keywords for identification (MULTILINGUAL - English + French + Arabic)
+    # Section keywords for identification (POWERFUL MULTILINGUAL - English + French + Variations)
+    # All keywords are lowercase - matching is done on lowercased text
     SECTION_KEYWORDS = {
-        'contact': ['contact', 'email', 'phone', 'address', 'linkedin', 'github', 'coordonnées'],
-        'summary': ['summary', 'objective', 'profile', 'about', 'à propos', 'a propos', 'résumé', 'profil', 'objectif'],
-        'education': ['education', 'academic', 'university', 'college', 'degree', 'bachelor', 'master', 'phd', 
-                      'éducation', 'formation', 'diplôme', 'université', 'école', 'ingénieur', 'études'],
-        'experience': ['experience', 'employment', 'work history', 'professional experience', 'career',
-                       'expérience', 'expériences', 'parcours', 'emploi', 'travail', 'professionnel', 'projet'],
-        'skills': ['skills', 'technical skills', 'competencies', 'expertise', 'proficiencies',
-                   'compétences', 'compétence', 'aptitudes', 'technologies', 'outils'],
-        'projects': ['projects', 'portfolio', 'work samples', 'projets', 'réalisations'],
-        'certifications': ['certifications', 'certificates', 'licenses', 'certificats', 'certifications'],
-        'languages': ['languages', 'language proficiency', 'langues', 'language']
+        'contact': [
+            # English
+            'contact', 'contact info', 'contact information', 'personal details', 'personal info',
+            'email', 'phone', 'address', 'linkedin', 'github', 'portfolio',
+            # French
+            'coordonnées', 'informations personnelles', 'contact personnel'
+        ],
+        'summary': [
+            # English
+            'summary', 'professional summary', 'executive summary', 'career summary',
+            'objective', 'career objective', 'professional objective',
+            'profile', 'professional profile', 'personal profile',
+            'about', 'about me', 'introduction', 'overview',
+            # French
+            'à propos', 'a propos', 'résumé', 'résumé professionnel', 
+            'profil', 'profil professionnel', 'objectif', 'objectif professionnel'
+        ],
+        'education': [
+            # English
+            'education', 'educational background', 'academic background', 'academic qualifications',
+            'academic', 'academics', 'university', 'college', 'school', 'institute', 'academy',
+            'degree', 'degrees', 'bachelor', 'master', 'phd', 'doctorate', 'mba',
+            'qualifications', 'training', 'coursework',
+            # French
+            'éducation', 'formation', 'formations', 'diplôme', 'diplômes',
+            'université', 'école', 'ingénieur', 'études', 'parcours académique'
+        ],
+        'experience': [
+            # English
+            'experience', 'work experience', 'professional experience', 'employment history',
+            'employment', 'work history', 'career history', 'professional background',
+            'career', 'positions', 'roles', 'responsibilities',
+            'volunteer', 'volunteer experience', 'volunteering', 'community service',
+            'internship', 'internships', 'co-op', 'practicum',
+            # French
+            'expérience', 'expériences', 'expérience professionnelle',
+            'parcours', 'parcours professionnel', 'emploi', 'travail',
+            'professionnel', 'projet', 'projets', 'bénévolat'
+        ],
+        'skills': [
+            # English
+            'skills', 'skill set', 'core skills', 'key skills',
+            'technical skills', 'professional skills', 'core competencies',
+            'competencies', 'expertise', 'proficiencies', 'abilities',
+            'tools', 'technologies', 'programming languages', 'languages',
+            # French
+            'compétences', 'compétence', 'aptitudes', 'savoir-faire',
+            'technologies', 'outils', 'langages'
+        ],
+        'projects': [
+            # English
+            'projects', 'key projects', 'major projects', 'notable projects',
+            'portfolio', 'work samples', 'selected works', 'achievements',
+            'accomplishments', 'publications',
+            # French
+            'projets', 'projets clés', 'réalisations', 'travaux', 'publications'
+        ],
+        'certifications': [
+            # English
+            'certifications', 'certificates', 'certification', 'certificate',
+            'licenses', 'license', 'credentials', 'professional development',
+            'awards', 'honors', 'recognition',
+            # French
+            'certificats', 'certifications', 'diplômes professionnels',
+            'distinctions', 'récompenses'
+        ],
+        'languages': [
+            # English
+            'languages', 'language skills', 'language proficiency',
+            'spoken languages', 'foreign languages', 'linguistic skills',
+            # French
+            'langues', 'langues parlées', 'compétences linguistiques'
+        ]
     }
     
     def __init__(self):
@@ -257,19 +320,38 @@ class ResumeParser:
         # Insert spaces before capital letters that follow lowercase (camelCase fix)
         text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
         
-        # Insert line breaks before section keywords (even if run together) - MULTILINGUAL
+        # Insert line breaks before section keywords (even if run together) - COMPREHENSIVE
         section_patterns = [
+            # English patterns - both upper and lowercase
             (r'([a-z\)])(\s*Education)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*EDUCATION)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Experience)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*EXPERIENCE)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*[Ww]ork\s+[Ee]xperience)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*WORK\s+EXPERIENCE)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Skills)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*SKILLS)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Summary)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*SUMMARY)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Objective)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*OBJECTIVE)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Contact)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*CONTACT)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Projects)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*PROJECTS)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Certifications?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*CERTIFICATIONS?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Languages?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*LANGUAGES?)', r'\1\n\n\2'),
             # French patterns
             (r'([a-z\)])(\s*Éducation)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*ÉDUCATION)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Expériences?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*EXPÉRIENCES?)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Compétences)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*COMPÉTENCES)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Projets?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*PROJETS?)', r'\1\n\n\2'),
         ]
         
         for pattern, replacement in section_patterns:
@@ -282,35 +364,62 @@ class ResumeParser:
         
         for line in lines:
             line_lower = line.lower().strip()
+            line_clean = re.sub(r'[^\w\s]', ' ', line_lower)  # Remove punctuation for better matching
             
             # Skip empty lines
             if not line_lower:
                 continue
             
-            # Check if line contains section keyword (VERY LENIENT matching)
+            # Check if line contains section keyword (STRICT - avoid false positives)
             detected_section = None
             for section_name, keywords in self.SECTION_KEYWORDS.items():
                 for keyword in keywords:
-                    # Check if keyword appears anywhere in the line (more lenient)
-                    if keyword in line_lower:
-                        # Less strict position requirement
-                        keyword_pos = line_lower.find(keyword)
-                        # Accept if keyword is prominent OR line is short OR it's at start
-                        if keyword_pos < 30 or len(line.split()) <= 8 or keyword_pos == 0:
+                    # Skip if line is too long (likely not a header)
+                    if len(line.split()) > 12:
+                        continue
+                    
+                    keyword_clean = re.sub(r'[^\w\s]', ' ', keyword).strip()
+                    line_stripped = line_lower.lstrip('•-*›▪○ \t')
+                    
+                    # STRICT DETECTION: Only match if it's clearly a header
+                    # 1. Line starts with keyword (after bullets) AND is short (≤4 words) or has colon
+                    if line_stripped.startswith(keyword):
+                        # Must be short OR have a colon (header pattern)
+                        if len(line.split()) <= 4 or ':' in line:
                             detected_section = section_name
-                            logger.info(f"  → Detected '{section_name}' section from line: '{line[:50]}'")
+                            logger.info(f"  → Detected '{section_name}' section (start) from: '{line[:60]}'")
                             break
+                    
+                    # 2. Keyword followed by colon (e.g., "WORK EXPERIENCE:", "Skills:")
+                    if re.search(r'\b' + re.escape(keyword) + r'\s*:', line_lower):
+                        detected_section = section_name
+                        logger.info(f"  → Detected '{section_name}' section (colon) from: '{line[:60]}'")
+                        break
+                    
+                    # 3. Standalone keyword in uppercase (1-3 words total)
+                    if keyword.upper() in line.upper() and len(line.split()) <= 3:
+                        detected_section = section_name
+                        logger.info(f"  → Detected '{section_name}' section (caps) from: '{line[:60]}'")
+                        break
+                        
                 if detected_section:
                     break
             
             if detected_section:
-                # Save previous section
-                if current_content:
-                    sections[current_section] = '\n'.join(current_content).strip()
-                
-                # Start new section
-                current_section = detected_section
-                current_content = []
+                # If it's the SAME section type, don't restart - just add a separator
+                # This handles cases like "WORK EXPERIENCE" followed by "VOLUNTEER EXPERIENCE"
+                if detected_section == current_section and current_content:
+                    # Add the header line as content (keep subsection headers)
+                    current_content.append(line)
+                    logger.info(f"  ↳ Continuing '{current_section}' section (subsection detected)")
+                else:
+                    # Save previous section (different section type)
+                    if current_content:
+                        sections[current_section] = '\n'.join(current_content).strip()
+                    
+                    # Start new section
+                    current_section = detected_section
+                    current_content = []
             else:
                 # Add line to current section
                 current_content.append(line)
@@ -318,6 +427,11 @@ class ResumeParser:
         # Save last section
         if current_content:
             sections[current_section] = '\n'.join(current_content).strip()
+        
+        # Debug: Log section lengths
+        for section_name, section_content in sections.items():
+            word_count = len(section_content.split())
+            logger.info(f"  📄 Section '{section_name}': {len(section_content)} chars, {word_count} words")
         
         logger.info(f"✓ Identified sections: {', '.join(sections.keys())}")
         return sections
@@ -440,9 +554,10 @@ class ResumeParser:
         
         if exp_text:
             # Look for job titles and company patterns
-            # Pattern: Years (like "1975 - Present" or "2000 - 2020")
-            year_pattern = r'(19\d{2}|20[0-2]\d)\s*[-–]\s*(Present|19\d{2}|20[0-2]\d)'
-            year_matches = list(re.finditer(year_pattern, exp_text))
+            # Pattern: Years with optional months (like "July 2009 - present" or "2000 - 2020")
+            # Supports: "2009", "July 2009", "Jul. 2009", "2009-2010", etc.
+            year_pattern = r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+)?(19\d{2}|20[0-2]\d)\s*[-–]\s*(present|ongoing|current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+)?(19\d{2}|20[0-2]\d|present|ongoing|current)'
+            year_matches = list(re.finditer(year_pattern, exp_text, re.IGNORECASE))
             
             # Common job title keywords
             job_keywords = ['founder', 'co-founder', 'ceo', 'cto', 'director', 'manager', 'engineer', 

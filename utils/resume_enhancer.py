@@ -22,6 +22,14 @@ import random
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Groq AI Integration
+try:
+    from groq import Groq
+    HAS_GROQ = True
+except ImportError:
+    HAS_GROQ = False
+    logger.warning("⚠️ Groq not available - will use rule-based enhancement only")
+
 
 class ResumeEnhancer:
     """
@@ -76,17 +84,27 @@ class ResumeEnhancer:
         Initialize enhancer
         
         Args:
-            use_ai_models: If True, use transformer models for advanced rewriting
+            use_ai_models: If True, use Groq API for intelligent enhancement
                           If False, use rule-based enhancement (faster, works offline)
         """
-        self.use_ai_models = use_ai_models
-        self.models_loaded = False
+        self.use_ai_models = use_ai_models and HAS_GROQ
+        self.groq_client = None
         
-        # Note: All AI text generation is now handled via Groq API if needed
-        # This enhancer focuses on rule-based improvements and formatting
-        self.use_ai_models = False
-        self.models_loaded = False
-        logger.info("Resume enhancer initialized (rule-based improvements)")
+        if self.use_ai_models:
+            try:
+                api_key = os.getenv('GROQ_API_KEY')
+                if not api_key:
+                    logger.warning("⚠️ GROQ_API_KEY not found - falling back to rule-based enhancement")
+                    self.use_ai_models = False
+                else:
+                    self.groq_client = Groq(api_key=api_key)
+                    logger.info("✓ Resume enhancer initialized with Groq AI")
+            except Exception as e:
+                logger.error(f"Failed to initialize Groq client: {e}")
+                self.use_ai_models = False
+                
+        if not self.use_ai_models:
+            logger.info("Resume enhancer initialized (rule-based improvements)")
     
     def enhance_resume(self, parsed_resume: Dict, analysis: Dict) -> Dict:
         """
@@ -99,16 +117,25 @@ class ResumeEnhancer:
         Returns:
             Enhanced resume with improvements
         """
-        logger.info("Starting resume enhancement...")
+        logger.info(f"Starting resume enhancement... (AI: {self.use_ai_models})")
         
         sections = parsed_resume.get('sections', {})
         structured_data = parsed_resume.get('structured_data', {})
         
-        enhancements = {
-            'summary': self._enhance_summary(
+        # Use Groq AI if available, otherwise fall back to rule-based
+        if self.use_ai_models and self.groq_client:
+            summary_enhanced = self._enhance_summary_with_groq(
                 structured_data.get('summary', ''),
                 structured_data
-            ),
+            )
+        else:
+            summary_enhanced = self._enhance_summary(
+                structured_data.get('summary', ''),
+                structured_data
+            )
+        
+        enhancements = {
+            'summary': summary_enhanced,
             'experience': self._enhance_experience(
                 structured_data.get('experience', [])
             ),
@@ -349,6 +376,102 @@ class ResumeEnhancer:
         
         return enhanced
     
+    def _enhance_summary_with_groq(self, original_summary: str, structured_data: Dict) -> str:
+        """
+        Use Groq AI to enhance professional summary
+        """
+        if not self.groq_client:
+            return self._enhance_summary(original_summary, structured_data)
+        
+        try:
+            # Extract context
+            experience = structured_data.get('experience', [])
+            skills = structured_data.get('skills', [])
+            education = structured_data.get('education', [])
+            
+            years_exp = len(experience)
+            top_skills = ", ".join(skills[:5]) if skills else "various skills"
+            
+            prompt = f"""You are an expert resume writer. Rewrite this professional summary to be more impactful and ATS-friendly.
+
+Original Summary: "{original_summary if original_summary else 'Not provided'}"
+
+Context:
+- Years of experience: {years_exp}
+- Top skills: {top_skills}
+- Education: {len(education)} degrees
+
+Requirements:
+1. Start with a strong action word (e.g., "Results-driven", "Accomplished", "Dedicated")
+2. Include specific skills and achievements
+3. Keep it concise (3-4 lines maximum)
+4. Make it ATS-friendly with relevant keywords
+5. Professional tone, no generic phrases
+
+Return ONLY the enhanced summary text, nothing else."""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=300
+            )
+            
+            enhanced = response.choices[0].message.content.strip()
+            # Remove quotes if Groq added them
+            enhanced = enhanced.strip('"\'')
+            
+            logger.info("✓ Summary enhanced with Groq AI")
+            return enhanced
+            
+        except Exception as e:
+            logger.error(f"Groq enhancement failed: {e}")
+            return self._enhance_summary(original_summary, structured_data)
+    
+    def _enhance_bullet_point_with_groq(self, bullet: str, job_title: str = "") -> str:
+        """
+        Use Groq AI to enhance a bullet point
+        """
+        if not self.groq_client:
+            return self._enhance_bullet_point(bullet)
+        
+        try:
+            prompt = f"""You are an expert resume writer. Rewrite this work experience bullet point to make it more impactful and ATS-friendly.
+
+Original: "{bullet}"
+Job Title: {job_title if job_title else "Not specified"}
+
+Requirements:
+1. Start with a strong action verb (e.g., Developed, Implemented, Managed, Led, Optimized)
+2. Add quantifiable metrics if possible (use realistic estimates like "20%", "5+ projects", "$50K")
+3. Highlight impact and results
+4. Keep it concise (1-2 lines)
+5. Professional tone, no fluff
+6. If numbers are missing, add realistic quantification
+
+Return ONLY the enhanced bullet point text (without bullet symbol), nothing else."""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=150
+            )
+            
+            enhanced = response.choices[0].message.content.strip()
+            # Remove quotes and bullet symbols if Groq added them
+            enhanced = enhanced.strip('"\'•-* ')
+            
+            # Ensure proper ending
+            if not enhanced.endswith('.'):
+                enhanced += '.'
+            
+            return enhanced
+            
+        except Exception as e:
+            logger.error(f"Groq bullet enhancement failed: {e}")
+            return self._enhance_bullet_point(bullet)
+    
     def _enhance_experience(self, experience_list: List[Dict]) -> List[Dict]:
         """
         Enhance work experience bullet points
@@ -368,9 +491,13 @@ class ResumeEnhancer:
                 original_bullets = [line.strip() for line in lines if line.strip().startswith(('•', '-', '*'))]
             
             enhanced_bullets = []
+            job_title = exp.get('job_title', '')
             
             for bullet in original_bullets:
-                enhanced_bullet = self._enhance_bullet_point(bullet)
+                if self.use_ai_models and self.groq_client:
+                    enhanced_bullet = self._enhance_bullet_point_with_groq(bullet, job_title)
+                else:
+                    enhanced_bullet = self._enhance_bullet_point(bullet)
                 enhanced_bullets.append(enhanced_bullet)
             
             enhanced_exp['enhanced_bullets'] = enhanced_bullets

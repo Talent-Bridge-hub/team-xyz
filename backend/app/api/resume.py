@@ -231,7 +231,7 @@ async def analyze_resume(
     # Analyze resume
     try:
         # Use the resume analyzer
-        analyzer = ResumeAnalyzer(use_ai_models=False)
+        analyzer = ResumeAnalyzer(use_ai_models=True)  # Enable Groq AI analysis
         
         # Reconstruct parsed_resume format expected by analyzer
         # Extract structured_data from parsed_data if available
@@ -427,7 +427,7 @@ async def enhance_resume(
     
     # Generate enhancements
     try:
-        enhancer = ResumeEnhancer()
+        enhancer = ResumeEnhancer(use_ai_models=True)  # Enable Groq AI enhancement
         
         # Prepare data for enhancer (needs analysis too)
         # Extract structured_data from parsed_data if available
@@ -743,7 +743,7 @@ async def download_enhanced_resume(
         analysis_data = json.loads(analysis_data_json) if isinstance(analysis_data_json, str) and analysis_data_json else {}
         
         # Generate enhancement - this returns a dict with enhanced sections
-        enhancer = ResumeEnhancer()
+        enhancer = ResumeEnhancer(use_ai_models=True)  # Enable Groq AI enhancement
         enhancement_result = enhancer.enhance_resume(
             parsed_data,
             analysis_data or {}

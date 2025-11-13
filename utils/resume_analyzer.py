@@ -16,6 +16,13 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import json
 
+# Groq AI Integration
+try:
+    from groq import Groq
+    HAS_GROQ = True
+except ImportError:
+    HAS_GROQ = False
+
 # NLP libraries
 import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -75,14 +82,27 @@ class ResumeAnalyzer:
         Initialize analyzer
         
         Args:
-            use_ai_models: If True, use transformer models for advanced analysis
-                          If False, use rule-based analysis (faster, no downloads)
+            use_ai_models: If True, use Groq API for intelligent analysis
+                          If False, use rule-based analysis only
         """
-        # Note: All AI analysis is now handled via Groq API in the API layer
-        # This analyzer focuses on rule-based metrics and pattern matching
-        self.use_ai_models = False
-        self.models_loaded = False
-        logger.info("Resume analyzer initialized (AI features via Groq API)")
+        self.use_ai_models = use_ai_models and HAS_GROQ
+        self.groq_client = None
+        
+        if self.use_ai_models:
+            try:
+                api_key = os.getenv('GROQ_API_KEY')
+                if not api_key:
+                    logger.warning("⚠️ GROQ_API_KEY not found - using rule-based analysis only")
+                    self.use_ai_models = False
+                else:
+                    self.groq_client = Groq(api_key=api_key)
+                    logger.info("✓ Resume analyzer initialized with Groq AI")
+            except Exception as e:
+                logger.error(f"Failed to initialize Groq: {e}")
+                self.use_ai_models = False
+        
+        if not self.use_ai_models:
+            logger.info("Resume analyzer initialized (rule-based analysis)")
     
     def analyze(self, parsed_resume: Dict) -> Dict:
         """
@@ -176,6 +196,51 @@ class ResumeAnalyzer:
         # Determine grade
         grade = self._get_grade(overall_score)
         
+        # AI-POWERED ENHANCEMENTS (if enabled)
+        ai_suggestions = []
+        ai_ats_insights = {}
+        ai_keyword_gaps = {}
+        ai_writing_quality = {}
+        ai_benchmark = {}
+        
+        if self.use_ai_models and self.groq_client:
+            logger.info("🤖 Generating comprehensive AI-powered insights...")
+            
+            # Get AI suggestions
+            ai_suggestions = self._get_ai_suggestions(parsed_resume, {
+                'overall_score': overall_score,
+                'ats_score': ats_score,
+                'content_score': content_score,
+                'skills_score': skill_match_score
+            })
+            
+            # Get ATS insights
+            ai_ats_insights = self._get_ai_ats_insights(parsed_resume)
+            
+            # Get keyword gap analysis
+            ai_keyword_gaps = self._get_ai_keyword_gap_analysis(parsed_resume, target_role="general")
+            
+            # Get writing quality assessment
+            ai_writing_quality = self._get_ai_writing_quality_score(parsed_resume)
+            
+            # Get competitive benchmark
+            ai_benchmark = self._get_ai_competitive_benchmark(parsed_resume, {
+                'overall_score': overall_score
+            })
+        
+        # Merge AI suggestions with rule-based suggestions
+        all_suggestions = suggestions + ai_suggestions if ai_suggestions else suggestions
+        
+        # Build comprehensive AI insights object
+        comprehensive_ai_insights = {}
+        if self.use_ai_models:
+            comprehensive_ai_insights = {
+                'ats_analysis': ai_ats_insights.get('ai_ats_analysis', None),
+                'missing_keywords': ai_keyword_gaps.get('missing_keywords', []),
+                'writing_quality': ai_writing_quality,
+                'competitive_benchmark': ai_benchmark
+            }
+        
         analysis_result = {
             'scores': {
                 'overall_score': overall_score,
@@ -190,13 +255,17 @@ class ResumeAnalyzer:
             'grade': grade,
             'strengths': strengths,
             'weaknesses': weaknesses,
-            'suggestions': suggestions,
+            'suggestions': all_suggestions,
             'missing_sections': missing_sections,
             'analyzed_at': datetime.now().isoformat(),
-            'word_count': metadata.get('word_count', 0)
+            'word_count': metadata.get('word_count', 0),
+            'ai_powered': self.use_ai_models,
+            'ai_insights': comprehensive_ai_insights if comprehensive_ai_insights else None
         }
         
         logger.info(f"✓ Analysis complete - Overall Score: {overall_score}/100 ({grade})")
+        if self.use_ai_models:
+            logger.info(f"🤖 AI insights included: {len(ai_suggestions)} suggestions + advanced analysis")
         return analysis_result
     
     def _calculate_ats_score(self, raw_text: str, sections: Dict, structured_data: Dict) -> int:
@@ -686,11 +755,15 @@ class ResumeAnalyzer:
         experience = structured_data.get('experience', [])
         experience_section = sections.get('experience', sections.get('work experience', ''))
         
+        logger.info(f"🔍 Experience Debug: Found {len(experience)} entries, section length: {len(experience_section)} chars")
+        
         if not experience and not experience_section:
+            logger.info(f"⚠️ No experience section found")
             return 35  # Low but not terrible - some people are entry-level
         
         exp_text = str(experience_section).lower()
         word_count = len(exp_text.split())
+        logger.info(f"📝 Experience text: {word_count} words")
         
         # 1. Check for experience entries - BALANCED
         if not experience:
@@ -709,7 +782,7 @@ class ResumeAnalyzer:
                 score -= 15
             # Having 1-2 positions is acceptable, don't penalize too much
         
-        # 2. Check for action verbs - MORE LENIENT
+        # 2. Check for action verbs - BALANCED
         all_action_verbs = []
         for category, verbs in self.ACTION_VERBS.items():
             all_action_verbs.extend(verbs)
@@ -719,69 +792,78 @@ class ResumeAnalyzer:
         
         # Also give credit for job-related keywords
         job_keywords = ['founder', 'co-founder', 'ceo', 'chair', 'co-chair', 'director', 'manager', 
-                       'lead', 'engineer', 'developer', 'analyst', 'consultant']
+                       'lead', 'engineer', 'developer', 'analyst', 'consultant', 'associate', 'representative']
         job_keyword_count = sum(1 for keyword in job_keywords if keyword in exp_text)
         
         total_relevant_words = action_verb_count + job_keyword_count
         
         if total_relevant_words == 0:
-            score -= 25  # No relevant words at all
-        elif total_relevant_words < 2:
-            score -= 15
-        elif total_relevant_words < 4:
-            score -= 5
+            score -= 30  # No relevant words at all
+        elif total_relevant_words < 3:
+            score -= 20
+        elif total_relevant_words < 6:
+            score -= 10
+        elif total_relevant_words >= 10:
+            score += 5  # Bonus for many action verbs
         
         # 3. Check for quantifiable achievements - numbers, percentages (BALANCED)
         numbers = re.findall(r'\d+[%$]?|\$\d+|[\d,]+\+?', exp_text)
         if len(numbers) == 0:
-            score -= 25  # No quantification at all
-        elif len(numbers) < 2:
-            score -= 15
-        elif len(numbers) < 4:
+            score -= 20  # No quantification
+        elif len(numbers) < 3:
             score -= 10
-        else:
-            score += 5  # Bonus for good quantification
+        elif len(numbers) >= 5:
+            score += 10  # Bonus for strong quantification
         
-        # 4. Check for bullet points - REQUIRED for readability
+        # 4. Check for bullet points - ENCOURAGED for readability
         has_bullets = any(char in experience_section for char in ['•', '-', '*', '○', '▪'])
         if not has_bullets:
-            if word_count > 50:
-                score -= 25  # Long text without bullets
-            else:
-                score -= 15
+            if word_count > 80:
+                score -= 15  # Long text without bullets
+            elif word_count > 50:
+                score -= 10
+        else:
+            score += 5  # Bonus for using bullets
         
-        # 5. Check length (not too short, not too long) - STRICTER
-        if word_count < 20:
-            score -= 40  # Way too short
-        elif word_count < 30:
-            score -= 30
+        # 5. Check length (not too short, not too long) - BALANCED
+        length_penalty = 0
+        if word_count < 30:
+            length_penalty = 25  # Too short
         elif word_count < 50:
-            score -= 20
-        elif word_count < 100:
-            score -= 10
-        elif word_count > 600:
-            score -= 15  # Too long
+            length_penalty = 15
+        elif word_count < 80:
+            length_penalty = 5
+        elif word_count > 500:
+            length_penalty = 10  # Too long
+        
+        if length_penalty > 0:
+            logger.info(f"⚠️ Length penalty: -{length_penalty} (word_count: {word_count})")
+            score -= length_penalty
+        elif word_count >= 100 and word_count <= 400:
+            score += 5  # Bonus for good length
         
         # 6. Check for placeholder/template text - only if multiple indicators
         template_phrases = ['please use', 'describe your', 'official company name', 
                            'concentrate on', 'examples that may']
         template_count = sum(1 for phrase in template_phrases if phrase in exp_text)
         if template_count >= 2:
+            logger.info(f"⚠️ Template text detected: -{40}")
             score -= 40  # Multiple template indicators
         
-        return max(0, min(100, score))
+        final_score = max(55, min(85, score))  # Cap between 55-85 for realistic scoring
+        logger.info(f"🎯 Experience final score: {final_score}/100 (penalties applied: action_verbs, numbers, bullets, length)")
+        return final_score
     
     def _calculate_education_score(self, structured_data: Dict, sections: Dict) -> int:
         """
-        Calculate education section quality score (VERY STRICT)
+        Calculate education section quality score (BALANCED)
         
         Factors:
         - Presence of education
-        - Degree level (must be SPECIFIC)
-        - Institution mentioned (must be REAL NAME)
+        - Degree level
+        - Institution mentioned
         - Dates included
         - Relevant details (GPA, honors, etc.)
-        - Template/placeholder detection (CRITICAL)
         """
         score = 100
         education = structured_data.get('education', [])
@@ -794,36 +876,26 @@ class ResumeAnalyzer:
         original_edu_text = str(education_section)  # Keep original for case-sensitive checks
         word_count = len(edu_text.split())
         
-        # Check for obvious template/placeholder text - MORE LENIENT
-        # Only trigger for multiple template indicators
+        # Check for template text - only if multiple indicators
         template_phrases = [
             'university/universities',
             'degree and subject',
             'forename surname',
-            'professional email address',
-            'landline or mobile number'
+            'professional email address'
         ]
         template_count = sum(1 for phrase in template_phrases if phrase in edu_text)
         
         if template_count >= 2:
-            # Multiple templates detected - likely not a real resume
-            score -= 60  # Heavy penalty but not automatic failure
+            score -= 50  # Multiple templates detected
         
-        # 1. Check for education entries - MORE LENIENT
+        # 1. Check for education entries
         if not education:
-            if word_count < 3:
-                score -= 40  # Almost nothing
-            elif word_count < 8:
-                score -= 25
-            elif word_count < 15:
-                score -= 10
-        else:
-            # Having at least one education entry is good!
-            if len(education) < 1:
+            if word_count < 5:
                 score -= 30
-            # Don't penalize for having just 1 education entry
+            elif word_count < 10:
+                score -= 15
         
-        # 2. Check for SPECIFIC degree level keywords (not generic "degree") - MORE LENIENT
+        # 2. Check for degree level keywords
         specific_degree_keywords = [
             'bachelor', 'master', 'phd', 'diploma', 'certificate',
             'bsc', 'msc', 'ba', 'ma', 'b.sc', 'm.sc', 'b.a', 'm.a',
@@ -831,100 +903,323 @@ class ResumeAnalyzer:
         ]
         has_specific_degree = any(kw in edu_text for kw in specific_degree_keywords)
         
-        # Check for generic "degree" only (template indicator)
-        has_generic_degree_only = 'degree' in edu_text and not has_specific_degree
-        
-        # Also check for institution keywords which indicate education is present
+        # Check for institution keywords
         institution_keywords = ['university', 'college', 'school', 'institute', 
-                               'academy', 'polytechnic', 'conservatory']
+                               'academy', 'polytechnic']
         has_institution = any(kw in edu_text for kw in institution_keywords)
         
         if not has_specific_degree:
-            if has_generic_degree_only:
-                score -= 35  # Just says "degree" - likely template (reduced from 45)
-            elif has_institution:
-                score -= 20  # Has institution but no specific degree (reduced from 40)
-            else:
-                score -= 30  # No degree or institution (reduced from 40)
-        
-        # 3. Check for REAL institution name (must be specific, not generic)
-        # Generic institution keywords (these are RED FLAGS)
-        generic_institution = ['university/universities', 'college/colleges', 
-                              'school/schools', 'institute/institutes']
-        has_generic_institution = any(kw in edu_text for kw in generic_institution)
-        
-        # Real institution indicators (proper nouns, specific names)
-        # Check if there's a capitalized institution name (proper noun)
-        has_real_institution = False
-        institution_patterns = [
-            r'\b[A-Z][a-z]+ University\b',  # e.g., "Harvard University"
-            r'\b[A-Z][a-z]+ College\b',     # e.g., "Boston College"
-            r'\bUniversity of [A-Z][a-z]+\b',  # e.g., "University of Oxford"
-            r'\b[A-Z]{2,}\b.*(?:University|College|Institute)',  # e.g., "MIT", "UCLA"
-        ]
-        for pattern in institution_patterns:
-            if re.search(pattern, original_edu_text):
-                has_real_institution = True
-                break
-        
-        if has_generic_institution:
-            score -= 25  # Generic "university/universities" - template
-        elif not has_real_institution:
-            # More lenient - if we found institution keywords earlier, it's okay
             if has_institution:
-                score -= 5  # Has institution keyword but not proper name
+                score -= 15  # Has institution but no specific degree
             else:
-                score -= 15  # No institution at all
+                score -= 25  # No degree or institution
         
-        # 4. Check for dates (graduation year) - MORE LENIENT
+        # 3. Check for years/dates
         years = re.findall(r'20\d{2}|19\d{2}', edu_text)
+        if not years:
+            score -= 10  # No dates
+        elif len(years) >= 2:
+            score += 5  # Bonus for date range
         
-        # Check if dates are obviously fake/examples
-        fake_year_patterns = ['2000-2003', '2001-2004', '2020-2024', 'xxxx']
-        has_fake_years = any(pattern in edu_text for pattern in fake_year_patterns)
-        
-        if has_fake_years:
-            score -= 25  # Fake/example years (reduced from 35)
-        elif not years:
-            score -= 15  # No dates at all (reduced from 25)
-        elif len(years) < 2:
-            score -= 5  # Only one date is fine (reduced from 15)
-        
-        # 5. Check for additional details (GPA, honors, relevant coursework) - MORE LENIENT
+        # 4. Check for additional details (GPA, honors, etc.)
         detail_keywords = ['gpa', 'honor', 'distinction', 'cum laude', 'thesis', 
-                          'coursework', 'major', 'minor', 'concentration', 'dean',
-                          'scholarship', 'award', 'summa', 'magna', '3.', '4.0']
+                          'coursework', 'major', 'minor', 'dean',
+                          'scholarship', 'award', '3.', '4.0']
         details_count = sum(1 for kw in detail_keywords if kw in edu_text)
         
-        if details_count == 0:
-            score -= 5  # No additional details (reduced from 15)
-        elif details_count >= 2:
-            score += 10  # Good details bonus (increased from 5)
+        if details_count >= 2:
+            score += 10  # Good details bonus
         
-        # 6. Check appropriate length - MORE LENIENT
-        if word_count < 5:
-            score -= 25  # Very short (reduced from 35)
-        elif word_count < 10:
-            score -= 15  # Short (reduced from 25)
-        elif word_count < 15:
-            score -= 5  # Minimal but okay (reduced from 15)
+        # 5. Check length
+        if word_count < 8:
+            score -= 20
+        elif word_count < 12:
+            score -= 10
+        elif word_count >= 20 and word_count <= 80:
+            score += 5  # Good length
         
-        # 7. Check for vague/placeholder text patterns - only penalize if obvious
-        vague_patterns = ['major here', 'degree type', 'field of study here', 
-                         'your degree', 'your major']
-        vague_count = sum(1 for pattern in vague_patterns if pattern in edu_text)
-        if vague_count >= 2:
-            score -= 30  # Multiple vague terms - likely template
-        elif vague_count == 1:
-            score -= 15  # One vague term
+        return max(60, min(85, score))  # Cap between 60-85 for realistic scoring
+    
+    def _get_ai_suggestions(self, parsed_resume: Dict, scores: Dict) -> List[str]:
+        """
+        Use Groq AI to generate intelligent, personalized improvement suggestions
+        """
+        if not self.groq_client:
+            return []
         
-        # 8. Check for generic/incomplete entries
-        generic_phrases = ['high school', 'secondary school']
-        only_generic = all(phrase in edu_text for phrase in generic_phrases) and not has_specific_degree
-        if only_generic:
-            score -= 30  # Increased from 25
+        try:
+            # Extract resume summary for AI
+            raw_text = parsed_resume.get('raw_text', '')
+            sections = parsed_resume.get('sections', {})
+            structured_data = parsed_resume.get('structured_data', {})
+            
+            # Create a concise summary for AI
+            summary = {
+                'scores': {
+                    'overall': scores.get('overall_score', 0),
+                    'ats': scores.get('ats_score', 0),
+                    'content': scores.get('content_score', 0),
+                    'skills': scores.get('skills_score', 0)
+                },
+                'experience_count': len(structured_data.get('experience', [])),
+                'education_count': len(structured_data.get('education', [])),
+                'skills_count': len(structured_data.get('skills', [])),
+                'total_words': len(raw_text.split())
+            }
+            
+            prompt = f"""You are an expert resume consultant. Analyze this resume and provide 5 specific, actionable improvement suggestions.
+
+Resume Summary:
+- Overall Score: {summary['scores']['overall']}/100
+- ATS Score: {summary['scores']['ats']}/100
+- Content Score: {summary['scores']['content']}/100
+- Skills Score: {summary['scores']['skills']}/100
+- Experience Entries: {summary['experience_count']}
+- Skills Listed: {summary['skills_count']}
+- Total Words: {summary['total_words']}
+
+Provide 5 specific, actionable suggestions to improve this resume. Focus on:
+1. ATS optimization (if score < 80)
+2. Content improvements (quantification, action verbs)
+3. Missing sections or skills
+4. Formatting and structure
+5. Industry-specific recommendations
+
+Return ONLY a JSON array of 5 suggestion strings, nothing else. Format:
+["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4", "suggestion 5"]"""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=500
+            )
+            
+            # Parse AI response
+            ai_response = response.choices[0].message.content.strip()
+            
+            # Try to extract JSON array
+            import json
+            try:
+                suggestions = json.loads(ai_response)
+                if isinstance(suggestions, list):
+                    logger.info(f"✓ Generated {len(suggestions)} AI-powered suggestions")
+                    return suggestions[:5]  # Limit to 5
+            except:
+                # Fallback: split by lines if JSON parsing fails
+                suggestions = [line.strip('- "\'') for line in ai_response.split('\n') if line.strip()]
+                return suggestions[:5]
+                
+        except Exception as e:
+            logger.error(f"Groq AI suggestions failed: {e}")
+            return []
         
-        return max(0, min(100, score))
+        return []
+    
+    def _get_ai_ats_insights(self, parsed_resume: Dict) -> Dict[str, any]:
+        """
+        Use Groq AI to provide intelligent ATS compatibility insights
+        """
+        if not self.groq_client:
+            return {}
+        
+        try:
+            raw_text = parsed_resume.get('raw_text', '')[:2000]  # First 2000 chars
+            
+            prompt = f"""Analyze this resume for ATS (Applicant Tracking System) compatibility.
+
+Resume excerpt:
+{raw_text}
+
+Provide a brief analysis (3-4 sentences) covering:
+1. Format compatibility (PDF, sections, headers)
+2. Keyword optimization
+3. Readability for ATS scanners
+4. One specific improvement recommendation
+
+Return ONLY the analysis text, nothing else."""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                max_tokens=200
+            )
+            
+            analysis = response.choices[0].message.content.strip()
+            logger.info("✓ Generated AI ATS insights")
+            
+            return {
+                'ai_ats_analysis': analysis,
+                'source': 'groq_ai'
+            }
+            
+        except Exception as e:
+            logger.error(f"Groq ATS insights failed: {e}")
+            return {}
+    
+    def _get_ai_keyword_gap_analysis(self, parsed_resume: Dict, target_role: str = "general") -> Dict[str, any]:
+        """
+        Use Groq AI to identify missing keywords for target job role
+        """
+        if not self.groq_client:
+            return {}
+        
+        try:
+            skills = parsed_resume.get('structured_data', {}).get('skills', [])
+            experience_text = ""
+            for exp in parsed_resume.get('structured_data', {}).get('experience', [])[:3]:
+                experience_text += exp.get('text', '') + "\n"
+            
+            prompt = f"""Analyze this resume for keyword gaps.
+
+Current Skills: {', '.join(skills[:15])}
+Recent Experience: {experience_text[:500]}
+Target Role: {target_role}
+
+Identify 5 high-impact keywords/skills that are MISSING but should be added for this role.
+Consider:
+1. Industry-standard tools and technologies
+2. Soft skills relevant to the role
+3. Certifications or qualifications
+4. Technical competencies
+5. Role-specific terminology
+
+Return ONLY a JSON array of 5 keywords, nothing else. Format:
+["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]"""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=200
+            )
+            
+            keywords_response = response.choices[0].message.content.strip()
+            
+            # Parse JSON array
+            import json
+            try:
+                missing_keywords = json.loads(keywords_response)
+                if isinstance(missing_keywords, list):
+                    logger.info(f"✓ Identified {len(missing_keywords)} missing keywords")
+                    return {
+                        'missing_keywords': missing_keywords[:5],
+                        'target_role': target_role
+                    }
+            except:
+                pass
+                
+        except Exception as e:
+            logger.error(f"Groq keyword gap analysis failed: {e}")
+        
+        return {}
+    
+    def _get_ai_writing_quality_score(self, parsed_resume: Dict) -> Dict[str, any]:
+        """
+        Use Groq AI to assess writing quality, tone, and professionalism
+        """
+        if not self.groq_client:
+            return {}
+        
+        try:
+            # Get sample text from experience
+            experience_samples = []
+            for exp in parsed_resume.get('structured_data', {}).get('experience', [])[:2]:
+                bullets = exp.get('bullet_points', [])[:3]
+                experience_samples.extend(bullets)
+            
+            sample_text = '\n'.join(experience_samples[:5])
+            
+            if not sample_text:
+                return {}
+            
+            prompt = f"""Analyze the writing quality of these resume bullet points:
+
+{sample_text}
+
+Rate (0-100) and explain briefly:
+1. Clarity: Is the writing clear and easy to understand?
+2. Professionalism: Is the tone appropriate for a resume?
+3. Impact: Do the statements convey meaningful achievements?
+4. Grammar: Are there any grammatical issues?
+
+Return as JSON:
+{{"clarity_score": 0-100, "professionalism_score": 0-100, "impact_score": 0-100, "grammar_score": 0-100, "brief_feedback": "2-3 sentences"}}"""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                max_tokens=300
+            )
+            
+            quality_response = response.choices[0].message.content.strip()
+            
+            # Parse JSON
+            import json
+            try:
+                quality_data = json.loads(quality_response)
+                logger.info("✓ Generated AI writing quality analysis")
+                return quality_data
+            except:
+                # Fallback: return text response
+                return {'brief_feedback': quality_response}
+                
+        except Exception as e:
+            logger.error(f"Groq writing quality analysis failed: {e}")
+        
+        return {}
+    
+    def _get_ai_competitive_benchmark(self, parsed_resume: Dict, scores: Dict) -> Dict[str, any]:
+        """
+        Use Groq AI to benchmark resume against industry standards
+        """
+        if not self.groq_client:
+            return {}
+        
+        try:
+            overall_score = scores.get('overall_score', 0)
+            experience_count = len(parsed_resume.get('structured_data', {}).get('experience', []))
+            skills_count = len(parsed_resume.get('structured_data', {}).get('skills', []))
+            
+            prompt = f"""Based on this resume profile, provide competitive benchmarking:
+
+Overall Score: {overall_score}/100
+Experience Entries: {experience_count}
+Skills Listed: {skills_count}
+
+Compare this resume to industry standards and provide:
+1. Percentile ranking (e.g., "Top 25% of candidates")
+2. One key strength vs. competitors
+3. One area where competitors are stronger
+4. One quick win to improve competitiveness
+
+Return as JSON:
+{{"percentile": "Top X% of candidates", "strength": "...", "weakness_vs_competitors": "...", "quick_win": "..."}}"""
+
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=250
+            )
+            
+            benchmark_response = response.choices[0].message.content.strip()
+            
+            # Parse JSON
+            import json
+            try:
+                benchmark_data = json.loads(benchmark_response)
+                logger.info("✓ Generated AI competitive benchmark")
+                return benchmark_data
+            except:
+                return {}
+                
+        except Exception as e:
+            logger.error(f"Groq competitive benchmark failed: {e}")
+        
+        return {}
 
 
 # Test function
