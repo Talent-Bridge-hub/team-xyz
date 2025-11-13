@@ -102,6 +102,17 @@ class ResumeAnalyzer:
         structured_data = parsed_resume.get('structured_data', {})
         metadata = parsed_resume.get('metadata', {})
         
+        # LOG EXTRACTED DATA FOR DEBUGGING
+        logger.info(f"📄 Resume Text Length: {len(raw_text)} characters, {len(raw_text.split())} words")
+        logger.info(f"📑 Sections Found: {list(sections.keys())}")
+        logger.info(f"📋 Structured Data Keys: {list(structured_data.keys())}")
+        if structured_data.get('skills'):
+            logger.info(f"🔧 Skills Extracted: {len(structured_data.get('skills', []))} skills")
+        if structured_data.get('experience'):
+            logger.info(f"💼 Experience Entries: {len(structured_data.get('experience', []))}")
+        if structured_data.get('education'):
+            logger.info(f"🎓 Education Entries: {len(structured_data.get('education', []))}")
+        
         # Calculate scores
         ats_score = self._calculate_ats_score(raw_text, sections, structured_data)
         formatting_score = self._calculate_formatting_score(raw_text, sections)
@@ -113,13 +124,28 @@ class ResumeAnalyzer:
         experience_score = self._calculate_experience_score(structured_data, sections)
         education_score = self._calculate_education_score(structured_data, sections)
         
-        # Overall score (weighted average) - NOW USES NEW STRICT SCORES!
-        # Skills: 35%, Experience: 40%, Education: 25%
+        # LOG INDIVIDUAL SCORES FOR DEBUGGING
+        logger.info(f"📊 Score Breakdown:")
+        logger.info(f"  ATS Score: {ats_score}/100")
+        logger.info(f"  Content Score: {content_score}/100")
+        logger.info(f"  Skill Match Score: {skill_match_score}/100")
+        logger.info(f"  Experience Score: {experience_score}/100")
+        logger.info(f"  Education Score: {education_score}/100")
+        logger.info(f"  Formatting Score: {formatting_score}/100")
+        logger.info(f"  Keyword Score: {keyword_score}/100")
+        
+        # Overall score (weighted average) - BALANCED APPROACH
+        # Use both old and new scoring methods for fairness
+        # ATS: 25%, Content: 30%, Skills: 20%, Experience: 15%, Education: 10%
         overall_score = int(
-            skill_match_score * 0.35 +
-            experience_score * 0.40 +
-            education_score * 0.25
+            ats_score * 0.25 +
+            content_score * 0.30 +
+            skill_match_score * 0.20 +
+            experience_score * 0.15 +
+            education_score * 0.10
         )
+        
+        logger.info(f"🎯 Overall Score Calculation: {ats_score}*0.25 + {content_score}*0.30 + {skill_match_score}*0.20 + {experience_score}*0.15 + {education_score}*0.10 = {overall_score}")
         
         # Identify strengths and weaknesses
         strengths = self._identify_strengths(sections, structured_data, {
@@ -592,21 +618,21 @@ class ResumeAnalyzer:
         skills = structured_data.get('skills', [])
         
         if not skills:
-            return 10  # Very low score for missing skills
+            return 30  # Low score but not terrible - they might list skills elsewhere
         
         num_skills = len(skills)
         
-        # 1. Number of skills (optimal: 10-15) - STRICTER
+        # 1. Number of skills (optimal: 8-15) - BALANCED
         if num_skills < 3:
-            score -= 50  # Very few skills
+            score -= 40  # Very few skills
         elif num_skills < 5:
-            score -= 40
+            score -= 30
+        elif num_skills < 7:
+            score -= 20
         elif num_skills < 8:
-            score -= 25
-        elif num_skills < 10:
-            score -= 15
+            score -= 10
         elif num_skills > 20:
-            score -= 15  # Too many can dilute impact
+            score -= 10  # Too many can dilute impact
         
         # 2. Check for technical/hard skills - REQUIRED
         technical_keywords = ['python', 'java', 'sql', 'javascript', 'aws', 'azure', 
@@ -661,20 +687,20 @@ class ResumeAnalyzer:
         experience_section = sections.get('experience', sections.get('work experience', ''))
         
         if not experience and not experience_section:
-            return 10  # Very low score for missing experience
+            return 35  # Low but not terrible - some people are entry-level
         
         exp_text = str(experience_section).lower()
         word_count = len(exp_text.split())
         
-        # 1. Check for experience entries - MORE LENIENT
+        # 1. Check for experience entries - BALANCED
         if not experience:
             # Try to estimate from text
             if word_count < 10:
-                score -= 40  # Almost nothing
+                score -= 30  # Almost nothing
             elif word_count < 30:
-                score -= 25
+                score -= 20
             elif word_count < 50:
-                score -= 15
+                score -= 10
         else:
             num_positions = len(experience)
             if num_positions < 1:
@@ -705,16 +731,16 @@ class ResumeAnalyzer:
         elif total_relevant_words < 4:
             score -= 5
         
-        # 3. Check for quantifiable achievements (CRITICAL) - numbers, percentages
+        # 3. Check for quantifiable achievements - numbers, percentages (BALANCED)
         numbers = re.findall(r'\d+[%$]?|\$\d+|[\d,]+\+?', exp_text)
         if len(numbers) == 0:
-            score -= 35  # No quantification at all
+            score -= 25  # No quantification at all
         elif len(numbers) < 2:
-            score -= 25
-        elif len(numbers) < 4:
             score -= 15
-        elif len(numbers) < 6:
-            score -= 5
+        elif len(numbers) < 4:
+            score -= 10
+        else:
+            score += 5  # Bonus for good quantification
         
         # 4. Check for bullet points - REQUIRED for readability
         has_bullets = any(char in experience_section for char in ['•', '-', '*', '○', '▪'])
@@ -736,12 +762,12 @@ class ResumeAnalyzer:
         elif word_count > 600:
             score -= 15  # Too long
         
-        # 6. Check for placeholder/template text
+        # 6. Check for placeholder/template text - only if multiple indicators
         template_phrases = ['please use', 'describe your', 'official company name', 
-                           'job title', 'city, country', 'concentrate on', 'examples that may']
-        has_template = any(phrase in exp_text for phrase in template_phrases)
-        if has_template:
-            score -= 45  # Major penalty for template text
+                           'concentrate on', 'examples that may']
+        template_count = sum(1 for phrase in template_phrases if phrase in exp_text)
+        if template_count >= 2:
+            score -= 40  # Multiple template indicators
         
         return max(0, min(100, score))
     
@@ -762,28 +788,26 @@ class ResumeAnalyzer:
         education_section = sections.get('education', sections.get('academic', sections.get('qualifications', '')))
         
         if not education and not education_section:
-            return 10  # Very low score for missing education (was 15, now 10)
+            return 40  # Low but reasonable - education isn't always required
         
         edu_text = str(education_section).lower()
         original_edu_text = str(education_section)  # Keep original for case-sensitive checks
         word_count = len(edu_text.split())
         
-        # CRITICAL: Check for template/placeholder text FIRST (automatic fail basically)
+        # Check for obvious template/placeholder text - MORE LENIENT
+        # Only trigger for multiple template indicators
         template_phrases = [
             'university/universities',
             'degree and subject',
-            'location; city and country',
-            'applicable additional info',
-            'city, country',
-            'qualifications',
             'forename surname',
-            'professional email',
-            'landline or mobile'
+            'professional email address',
+            'landline or mobile number'
         ]
-        has_template = any(phrase in edu_text for phrase in template_phrases)
-        if has_template:
-            # Template detected - should get VERY low score
-            return 10  # Automatic 10% for template text!
+        template_count = sum(1 for phrase in template_phrases if phrase in edu_text)
+        
+        if template_count >= 2:
+            # Multiple templates detected - likely not a real resume
+            score -= 60  # Heavy penalty but not automatic failure
         
         # 1. Check for education entries - MORE LENIENT
         if not education:
@@ -844,13 +868,13 @@ class ResumeAnalyzer:
                 break
         
         if has_generic_institution:
-            score -= 35  # Generic "university/universities" - template (reduced from 45)
+            score -= 25  # Generic "university/universities" - template
         elif not has_real_institution:
             # More lenient - if we found institution keywords earlier, it's okay
             if has_institution:
-                score -= 10  # Has institution keyword but not proper name (reduced from 40)
+                score -= 5  # Has institution keyword but not proper name
             else:
-                score -= 25  # No institution at all (reduced from 40)
+                score -= 15  # No institution at all
         
         # 4. Check for dates (graduation year) - MORE LENIENT
         years = re.findall(r'20\d{2}|19\d{2}', edu_text)
@@ -885,12 +909,14 @@ class ResumeAnalyzer:
         elif word_count < 15:
             score -= 5  # Minimal but okay (reduced from 15)
         
-        # 7. Check for vague/placeholder text patterns
-        vague_patterns = ['city', 'country', 'location', 'applicable', 'additional info',
-                         'subject', 'field', 'major here', 'degree type']
+        # 7. Check for vague/placeholder text patterns - only penalize if obvious
+        vague_patterns = ['major here', 'degree type', 'field of study here', 
+                         'your degree', 'your major']
         vague_count = sum(1 for pattern in vague_patterns if pattern in edu_text)
         if vague_count >= 2:
-            score -= 35  # Multiple vague terms - likely template
+            score -= 30  # Multiple vague terms - likely template
+        elif vague_count == 1:
+            score -= 15  # One vague term
         
         # 8. Check for generic/incomplete entries
         generic_phrases = ['high school', 'secondary school']

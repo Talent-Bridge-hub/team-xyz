@@ -17,6 +17,11 @@ from datetime import datetime
 # PDF Processing
 import PyPDF2
 from io import BytesIO
+try:
+    import pdfplumber
+    HAS_PDFPLUMBER = True
+except ImportError:
+    HAS_PDFPLUMBER = False
 
 # DOCX Processing  
 from docx import Document
@@ -41,16 +46,19 @@ class ResumeParser:
     Parse resumes and extract structured information
     """
     
-    # Section keywords for identification
+    # Section keywords for identification (MULTILINGUAL - English + French + Arabic)
     SECTION_KEYWORDS = {
-        'contact': ['contact', 'email', 'phone', 'address', 'linkedin', 'github'],
-        'summary': ['summary', 'objective', 'profile', 'about'],
-        'education': ['education', 'academic', 'university', 'college', 'degree', 'bachelor', 'master', 'phd'],
-        'experience': ['experience', 'employment', 'work history', 'professional experience', 'career'],
-        'skills': ['skills', 'technical skills', 'competencies', 'expertise', 'proficiencies'],
-        'projects': ['projects', 'portfolio', 'work samples'],
-        'certifications': ['certifications', 'certificates', 'licenses'],
-        'languages': ['languages', 'language proficiency']
+        'contact': ['contact', 'email', 'phone', 'address', 'linkedin', 'github', 'coordonnées'],
+        'summary': ['summary', 'objective', 'profile', 'about', 'à propos', 'a propos', 'résumé', 'profil', 'objectif'],
+        'education': ['education', 'academic', 'university', 'college', 'degree', 'bachelor', 'master', 'phd', 
+                      'éducation', 'formation', 'diplôme', 'université', 'école', 'ingénieur', 'études'],
+        'experience': ['experience', 'employment', 'work history', 'professional experience', 'career',
+                       'expérience', 'expériences', 'parcours', 'emploi', 'travail', 'professionnel', 'projet'],
+        'skills': ['skills', 'technical skills', 'competencies', 'expertise', 'proficiencies',
+                   'compétences', 'compétence', 'aptitudes', 'technologies', 'outils'],
+        'projects': ['projects', 'portfolio', 'work samples', 'projets', 'réalisations'],
+        'certifications': ['certifications', 'certificates', 'licenses', 'certificats', 'certifications'],
+        'languages': ['languages', 'language proficiency', 'langues', 'language']
     }
     
     def __init__(self):
@@ -116,15 +124,64 @@ class ResumeParser:
     
     def _extract_from_pdf(self, file_path: str) -> str:
         """
-        Extract text from PDF file
+        Extract text from PDF file - ENHANCED with pdfplumber
         
         WHY: PDF is the most common resume format
-        Uses PyPDF2 to read PDF content page by page
+        Uses pdfplumber (best) with PyPDF2 fallback
         """
         text = ""
+        
+        
+        if HAS_PDFPLUMBER:
+            try:
+                logger.info("Using pdfplumber for extraction...")
+                with pdfplumber.open(file_path) as pdf:
+                    num_pages = len(pdf.pages)
+                    for page_num, page in enumerate(pdf.pages):
+                        try:
+                            # Extract text with better layout handling
+                            page_text = page.extract_text(layout=True, x_tolerance=2, y_tolerance=3)
+                            
+                            # If layout mode didn't work, try standard extraction
+                            if not page_text or len(page_text.strip()) < 50:
+                                page_text = page.extract_text()
+                            
+                            # Also extract text from tables (common in resumes)
+                            tables = page.extract_tables()
+                            table_text = ""
+                            if tables:
+                                for table in tables:
+                                    for row in table:
+                                        if row:
+                                            table_text += " ".join([str(cell) if cell else "" for cell in row]) + "\n"
+                            
+                            # Combine regular text and table text
+                            combined_text = page_text if page_text else ""
+                            if table_text:
+                                combined_text += "\n" + table_text
+                            
+                            if combined_text:
+                                text += combined_text + "\n"
+                                logger.info(f"✓ Page {page_num + 1}: Extracted {len(combined_text)} characters ({len(combined_text.split())} words)")
+                            else:
+                                logger.warning(f"⚠️ Page {page_num + 1}: No text extracted")
+                        except Exception as page_error:
+                            logger.warning(f"Could not extract page {page_num + 1}: {page_error}")
+                            continue
+                
+                if text.strip():
+                    word_count = len(text.split())
+                    logger.info(f"✓ pdfplumber: Extracted {len(text)} characters, {word_count} words from {num_pages} pages")
+                    return text.strip()
+                else:
+                    logger.warning("pdfplumber extracted no text, trying PyPDF2...")
+            except Exception as e:
+                logger.warning(f"pdfplumber failed: {e}, trying PyPDF2...")
+        
+        # Fallback to PyPDF2
         try:
+            logger.info("Using PyPDF2 for extraction...")
             with open(file_path, 'rb') as file:
-                # Try with strict mode disabled to handle corrupted PDFs
                 pdf_reader = PyPDF2.PdfReader(file, strict=False)
                 num_pages = len(pdf_reader.pages)
                 
@@ -132,8 +189,12 @@ class ResumeParser:
                     try:
                         page = pdf_reader.pages[page_num]
                         page_text = page.extract_text()
+                        
                         if page_text:
                             text += page_text + "\n"
+                            logger.info(f"✓ Page {page_num + 1}: Extracted {len(page_text)} characters")
+                        else:
+                            logger.warning(f"⚠️ Page {page_num + 1}: No text extracted")
                     except Exception as page_error:
                         logger.warning(f"Could not extract page {page_num + 1}: {page_error}")
                         continue
@@ -141,14 +202,14 @@ class ResumeParser:
             if not text.strip():
                 logger.warning("No text extracted from PDF, using filename as fallback")
                 text = f"Resume document: {os.path.basename(file_path)}"
+            else:
+                logger.info(f"✓ PyPDF2: Extracted {len(text)} characters, {len(text.split())} words from {num_pages} pages")
             
-            logger.info(f"✓ Extracted {num_pages} pages from PDF")
             return text.strip()
             
         except Exception as e:
             logger.error(f"Error extracting PDF: {e}")
-            # Return a minimal text instead of failing completely
-            logger.warning("PDF parsing failed, using fallback text")
+            logger.warning("PDF parsing failed completely, using fallback text")
             return f"Resume document: {os.path.basename(file_path)}\n\nNote: Unable to extract text from PDF. Please ensure the PDF is not corrupted or password-protected."
     
     def _extract_from_docx(self, file_path: str) -> str:
@@ -196,7 +257,7 @@ class ResumeParser:
         # Insert spaces before capital letters that follow lowercase (camelCase fix)
         text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
         
-        # Insert line breaks before section keywords (even if run together)
+        # Insert line breaks before section keywords (even if run together) - MULTILINGUAL
         section_patterns = [
             (r'([a-z\)])(\s*Education)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Experience)', r'\1\n\n\2'),
@@ -204,6 +265,11 @@ class ResumeParser:
             (r'([a-z\)])(\s*Summary)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Contact)', r'\1\n\n\2'),
             (r'([a-z\)])(\s*Projects)', r'\1\n\n\2'),
+            # French patterns
+            (r'([a-z\)])(\s*Éducation)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Expériences?)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Compétences)', r'\1\n\n\2'),
+            (r'([a-z\)])(\s*Projets?)', r'\1\n\n\2'),
         ]
         
         for pattern, replacement in section_patterns:
@@ -221,16 +287,18 @@ class ResumeParser:
             if not line_lower:
                 continue
             
-            # Check if line contains section keyword (more aggressive matching)
+            # Check if line contains section keyword (VERY LENIENT matching)
             detected_section = None
             for section_name, keywords in self.SECTION_KEYWORDS.items():
                 for keyword in keywords:
-                    # Check if keyword appears at word boundary
-                    if re.search(r'\b' + re.escape(keyword) + r'\b', line_lower):
-                        # If keyword is prominent (appears in first 20 chars or line is short)
+                    # Check if keyword appears anywhere in the line (more lenient)
+                    if keyword in line_lower:
+                        # Less strict position requirement
                         keyword_pos = line_lower.find(keyword)
-                        if keyword_pos < 20 or len(line.split()) <= 6:
+                        # Accept if keyword is prominent OR line is short OR it's at start
+                        if keyword_pos < 30 or len(line.split()) <= 8 or keyword_pos == 0:
                             detected_section = section_name
+                            logger.info(f"  → Detected '{section_name}' section from line: '{line[:50]}'")
                             break
                 if detected_section:
                     break
