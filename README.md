@@ -224,6 +224,7 @@
 ## 🚀 Quick Start Guide
 
 see SETUP_GUIDE.md
+Full Documentation in docs folder
 
 ## 🎉 Acknowledgments
 
