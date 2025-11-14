@@ -94,15 +94,37 @@ async def add_process_time_header(request: Request, call_next):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors"""
-    # Convert bytes to strings in error details
-    errors = exc.errors()
-    for error in errors:
-        if 'input' in error and isinstance(error['input'], bytes):
-            error['input'] = error['input'].decode('utf-8', errors='replace')
-        if 'ctx' in error and isinstance(error['ctx'], dict):
-            for key, value in error['ctx'].items():
-                if isinstance(value, bytes):
-                    error['ctx'][key] = value.decode('utf-8', errors='replace')
+    # Convert bytes to strings in error details and make everything JSON serializable
+    errors = []
+    for error in exc.errors():
+        serializable_error = {}
+        for key, value in error.items():
+            if isinstance(value, bytes):
+                serializable_error[key] = value.decode('utf-8', errors='replace')
+            elif isinstance(value, dict):
+                # Handle nested dicts (like 'ctx')
+                serializable_dict = {}
+                for k, v in value.items():
+                    if isinstance(v, bytes):
+                        serializable_dict[k] = v.decode('utf-8', errors='replace')
+                    else:
+                        # Convert any other non-serializable objects to strings
+                        try:
+                            import json
+                            json.dumps(v)
+                            serializable_dict[k] = v
+                        except (TypeError, ValueError):
+                            serializable_dict[k] = str(v)
+                serializable_error[key] = serializable_dict
+            else:
+                # Convert any other non-serializable objects to strings
+                try:
+                    import json
+                    json.dumps(value)
+                    serializable_error[key] = value
+                except (TypeError, ValueError):
+                    serializable_error[key] = str(value)
+        errors.append(serializable_error)
     
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,

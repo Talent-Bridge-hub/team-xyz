@@ -51,13 +51,15 @@ export function ResumeTemplatesModal({ isOpen, onClose }: ResumeTemplatesModalPr
   const handleDownloadTemplate = async (templateId: string, templateName: string) => {
     try {
       setError('');
+      console.log(`Downloading template: ${templateId} - ${templateName}`);
       const blob = await resumeService.downloadTemplate(templateId);
+      console.log(`Blob received, size: ${blob.size}, type: ${blob.type}`);
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `resume_template_${templateName.replace(/\s+/g, '_')}.pdf`;
+      a.download = `resume_template_${templateName.replace(/\s+/g, '_')}.docx`; // Fixed: Changed from .pdf to .docx
       document.body.appendChild(a);
       a.click();
       
@@ -66,11 +68,12 @@ export function ResumeTemplatesModal({ isOpen, onClose }: ResumeTemplatesModalPr
       document.body.removeChild(a);
       
       // Show success message
-      showSuccess(`Template "${templateName}" downloaded successfully! Fill in your details, save it, and upload it for analysis.`);
+      showSuccess(`Template "${templateName}" downloaded successfully! Edit it in Word, save as PDF, and upload it for analysis.`);
       
     } catch (err: any) {
       console.error('Download failed:', err);
-      const errorMsg = `Failed to download template: ${err.message}`;
+      console.error('Error details:', err.response?.data, err.response?.status);
+      const errorMsg = `Failed to download template: ${err.response?.data?.detail || err.message || 'Unknown error'}`;
       setError(errorMsg);
       showError(errorMsg);
     }

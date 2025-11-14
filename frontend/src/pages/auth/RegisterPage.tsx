@@ -13,6 +13,7 @@ export const RegisterPage = () => {
     full_name: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -25,16 +26,50 @@ export const RegisterPage = () => {
     }));
   };
 
+  // Password strength checks
+  const passwordChecks = {
+    minLength: formData.password.length >= 8,
+    hasUppercase: /[A-Z]/.test(formData.password),
+    hasNumber: /[0-9]/.test(formData.password),
+    passwordsMatch: formData.password && formData.password === formData.confirmPassword,
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      showWarning('Passwords do not match. Please try again.');
+    // Client-side validation with specific messages
+    if (!formData.full_name.trim()) {
+      showWarning('Please enter your full name.');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      showWarning('Please enter your email address.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      showWarning('Please enter a valid email address.');
       return;
     }
 
     if (formData.password.length < 8) {
       showWarning('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(formData.password)) {
+      showWarning('Password must contain at least one uppercase letter.');
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      showWarning('Password must contain at least one number.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      showWarning('Passwords do not match. Please try again.');
       return;
     }
 
@@ -46,7 +81,24 @@ export const RegisterPage = () => {
       showSuccess('Account created successfully! Welcome to CareerStar.');
       navigate('/dashboard');
     } catch (err: any) {
-      showError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      // Handle specific error messages from backend
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = err.response?.data?.error?.message;
+      const errorDetails = err.response?.data?.error?.details;
+      
+      if (errorDetail === 'Email already registered') {
+        showError('This email is already registered. Please sign in or use a different email.');
+      } else if (errorMessage) {
+        // Show validation errors from backend
+        if (errorDetails && Array.isArray(errorDetails)) {
+          const messages = errorDetails.map((e: any) => e.msg || e.message).join(', ');
+          showError(`Registration failed: ${messages}`);
+        } else {
+          showError(errorMessage);
+        }
+      } else {
+        showError(errorDetail || 'Registration failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,9 +170,26 @@ export const RegisterPage = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
+                onFocus={() => setShowPasswordRequirements(true)}
                 className="appearance-none block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="••••••••"
               />
+              {showPasswordRequirements && formData.password && (
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className={`flex items-center gap-1 ${passwordChecks.minLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <span>{passwordChecks.minLength ? '✓' : '○'}</span>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <span>{passwordChecks.hasUppercase ? '✓' : '○'}</span>
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <span>{passwordChecks.hasNumber ? '✓' : '○'}</span>
+                    <span>One number</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -138,6 +207,12 @@ export const RegisterPage = () => {
                 className="appearance-none block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="••••••••"
               />
+              {formData.confirmPassword && (
+                <div className={`mt-2 text-xs flex items-center gap-1 ${passwordChecks.passwordsMatch ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <span>{passwordChecks.passwordsMatch ? '✓' : '✗'}</span>
+                  <span>{passwordChecks.passwordsMatch ? 'Passwords match' : 'Passwords do not match'}</span>
+                </div>
+              )}
             </div>
 
           <div>
