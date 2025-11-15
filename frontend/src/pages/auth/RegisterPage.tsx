@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { Spinner } from '../../components/common/LoadingComponents';
 import { Logo } from '../../components/common/Logo';
+import { PrivacyPolicyModal } from '../../components/auth/PrivacyPolicyModal';
 
 export const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -11,18 +12,21 @@ export const RegisterPage = () => {
     password: '',
     confirmPassword: '',
     full_name: '',
+    acceptedPolicy: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   
   const { register } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -73,11 +77,16 @@ export const RegisterPage = () => {
       return;
     }
 
+    if (!formData.acceptedPolicy) {
+      showWarning('Please accept the Privacy Policy and Terms of Service to continue.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
+      const { confirmPassword, acceptedPolicy, ...registerData } = formData;
+      await register({ ...registerData, accepted_privacy_policy: acceptedPolicy });
       showSuccess('Account created successfully! Welcome to CareerStar.');
       navigate('/dashboard');
     } catch (err: any) {
@@ -215,10 +224,35 @@ export const RegisterPage = () => {
               )}
             </div>
 
+            {/* Privacy Policy Acceptance */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <input
+                  id="acceptedPolicy"
+                  name="acceptedPolicy"
+                  type="checkbox"
+                  checked={formData.acceptedPolicy}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+                />
+                <label htmlFor="acceptedPolicy" className="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+                  >
+                    Privacy Policy and Terms of Service
+                  </button>
+                  , including the use of my data to train AI models to improve services.
+                </label>
+              </div>
+            </div>
+
           <div>
             <button
               type={"submit" as const}
-              disabled={isLoading}
+              disabled={isLoading || !formData.acceptedPolicy}
               className="group relative w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
             >
               {isLoading && <Spinner size="sm" className="border-white border-t-transparent" />}
@@ -236,6 +270,12 @@ export const RegisterPage = () => {
           </div>
         </form>
         </div>
+
+        {/* Privacy Policy Modal */}
+        <PrivacyPolicyModal 
+          isOpen={showPrivacyModal} 
+          onClose={() => setShowPrivacyModal(false)} 
+        />
       </div>
     </div>
   );

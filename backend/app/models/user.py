@@ -15,6 +15,7 @@ class UserRegister(BaseModel):
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=8, description="Password (min 8 characters)")
     full_name: str = Field(..., min_length=2, max_length=100, description="Full name")
+    accepted_privacy_policy: bool = Field(False, description="Privacy policy acceptance")
     
     @validator('password')
     def password_strength(cls, v):
@@ -23,6 +24,13 @@ class UserRegister(BaseModel):
             raise ValueError('Password must contain at least one digit')
         if not any(char.isupper() for char in v):
             raise ValueError('Password must contain at least one uppercase letter')
+        return v
+    
+    @validator('accepted_privacy_policy')
+    def validate_policy_acceptance(cls, v):
+        """Ensure privacy policy is accepted"""
+        if not v:
+            raise ValueError('You must accept the Privacy Policy and Terms of Service to register')
         return v
 
 

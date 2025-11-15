@@ -61,6 +61,8 @@ async def register(
             "email": user_data.email,
             "name": user_data.full_name,  # DB uses 'name', not 'full_name'
             "password_hash": password_hash,
+            "accepted_privacy_policy": user_data.accepted_privacy_policy,
+            "privacy_policy_accepted_at": datetime.utcnow() if user_data.accepted_privacy_policy else None,
             "created_at": datetime.utcnow()
         }
     )

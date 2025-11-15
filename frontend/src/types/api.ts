@@ -23,6 +23,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
+  accepted_privacy_policy: boolean;
 }
 
 // Resume Types
