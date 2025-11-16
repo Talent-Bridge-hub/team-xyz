@@ -1,9 +1,5 @@
-# UtopiaHire Backend API Documentation - Part 3
+# CareerStar Backend API Documentation - Part 3
 ## Interview & Footprint API Reference
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Base URL:** `http://localhost:8000/api/v1`
 
 ---
 
@@ -923,7 +919,7 @@ curl -X GET "http://localhost:8000/api/v1/footprint/compare/1/2" \
 
 ---
 
-## 11. Rate Limiting
+## 11. Rate Limiting(soon)
 
 ### Rate Limit Configuration
 
@@ -1121,11 +1117,3 @@ const searchJobs = debounce(async (keywords) => {
 ---
 
 **End of Part 3**
-
-This completes the comprehensive UtopiaHire Backend API Documentation covering all endpoints, authentication, data models, error handling, and best practices.
-
-For questions or support, contact the development team or open an issue on GitHub.
-
-**Version:** 1.0.0  
-**Last Updated:** November 6, 2025  
-**API Status:** ✅ Production Ready
