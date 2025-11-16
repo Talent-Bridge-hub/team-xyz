@@ -1,4 +1,4 @@
-# 🌟 UtopiaHire - AI-Powered Career Platform
+# 🌟 CareerStar - AI-Powered Career Platform
 
 > **A comprehensive, production-ready AI-powered career platform with 5 integrated modules for job seekers and professionals in MENA & Sub-Saharan Africa.**
 
