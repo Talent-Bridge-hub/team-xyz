@@ -143,7 +143,7 @@ This comprehensive database documentation is organized into **5 parts**, each un
 ### Module 4: Interview (5 tables)
 | Table | Purpose | Key Features |
 |-------|---------|--------------|
-| `question_bank` | Question library | 500+ questions, arrays for skills/roles |
+| `question_bank` | Question library | 40+ questions, arrays for skills/roles |
 | `interview_sessions` | User sessions | Status tracking, timing, scores |
 | `interview_questions` | Session questions | Order tracking, time limits |
 | `interview_answers` | User responses | 6-dimension scoring, JSONB feedback |
