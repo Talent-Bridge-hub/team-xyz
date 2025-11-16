@@ -1,10 +1,4 @@
 # Footprint Module Documentation - PART 2
-
-> **Module:** Digital Footprint Scanner  
-> **Generated:** November 6, 2025  
-> **Version:** 1.0  
-> **Part:** 2 of 2 (AI System, Frontend, Flows, Testing, Troubleshooting)
-
 ---
 
 ## Table of Contents - Part 2
@@ -1335,70 +1329,6 @@ if recommendations and recommendations.get('generated_at'):
         return recommendations  # Return cached
 ```
 
-### 12.3 Docker Deployment
-
-**Dockerfile (Backend):**
-
-```dockerfile
-FROM python:3.12-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-**docker-compose.yml:**
-
-```yaml
-version: '3.8'
-
-services:
-  db:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: utopiahire
-      POSTGRES_USER: utopia_user
-      POSTGRES_PASSWORD: utopia_secure_2025
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  backend:
-    build: ./backend
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: utopiahire
-      DB_USER: utopia_user
-      DB_PASSWORD: utopia_secure_2025
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      GROQ_API_KEY: ${GROQ_API_KEY}
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-
-  frontend:
-    build: ./frontend
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000/api/v1
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
-```
-
----
-
 ## 13. Troubleshooting
 
 ### 13.1 Common Issues
@@ -1634,15 +1564,3 @@ const debouncedFetch = useMemo(
 ---
 
 **End of Part 2**
-
-**Complete documentation available in:**
-- [FOOTPRINT_MODULE_PART1.md](./FOOTPRINT_MODULE_PART1.md) - Overview, Architecture, Integrations, Scoring, Database, API
-- [FOOTPRINT_MODULE_PART2.md](./FOOTPRINT_MODULE_PART2.md) - AI System, Frontend, Flows, Testing, Deployment (this file)
-
----
-
-**Total Documentation:**
-- **Part 1:** ~1000 lines (Overview, Architecture, Platform Integrations, Scoring System, Database Schema, API Reference)
-- **Part 2:** ~1000 lines (AI Recommendations, Frontend Components, Integration Flows, Configuration, Testing, Deployment, Troubleshooting)
-- **Combined:** ~2000 lines of comprehensive technical documentation
-- **Module Files:** 15 files, ~5000+ lines of code documented
