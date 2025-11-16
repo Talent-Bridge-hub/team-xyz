@@ -1,12 +1,8 @@
-# UtopiaHire - Interview Module Documentation (Part 2B)
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0  
-> **Part:** 2B of 3 (Frontend, Integration, Configuration, Testing)
+# CareerStar - Interview Module Documentation (Part 2B)
 
 ---
 
-## Table of Contents (Part 2B)
+## Table of Contents (Part 3)
 
 1. [Frontend Components Guide](#frontend-components-guide)
 2. [Integration Flows](#integration-flows)
