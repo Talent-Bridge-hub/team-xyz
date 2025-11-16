@@ -1,10 +1,5 @@
 # Footprint Module Documentation - PART 1
 
-> **Module:** Digital Footprint Scanner  
-> **Generated:** November 6, 2025  
-> **Version:** 1.0  
-> **Part:** 1 of 2 (Overview, Architecture, Integrations, Scoring, Database)
-
 ---
 
 ## Table of Contents - Part 1
@@ -35,7 +30,7 @@ The **Digital Footprint Scanner** analyzes a developer's online presence across 
 ✅ **Multi-Platform Scanning:**
 - GitHub profile, repositories, activity, README analysis
 - StackOverflow reputation, badges, tags, contributions
-- Support for additional platforms (LinkedIn, Twitter - future)
+- Support for additional platforms (LinkedIn, Twitter - future)(Soon)
 
 ✅ **Advanced Scoring:**
 - Overall visibility score (0-100)
