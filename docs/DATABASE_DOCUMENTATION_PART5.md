@@ -1,4 +1,4 @@
-# UtopiaHire Database Documentation - Part 5
+# CareerStar Database Documentation - Part 5
 ## Indexes, Migrations & Best Practices
 
 ## Table of Contents (Part 5)
@@ -16,7 +16,7 @@
 
 ### 1.1 Index Overview
 
-**UtopiaHire** uses strategic indexing across all tables to optimize query performance:
+**CareerStar** uses strategic indexing across all tables to optimize query performance:
 
 | Index Type | Count | Purpose |
 |-----------|-------|---------|
@@ -185,7 +185,7 @@ REINDEX DATABASE utopiahire;
 
 ### 2.1 Migration Architecture
 
-**UtopiaHire** uses **Python-based migrations** with custom execute_query functions:
+**CareerStar** uses **Python-based migrations** with custom execute_query functions:
 
 ```
 /backend/migrations/
@@ -855,44 +855,11 @@ REINDEX DATABASE utopiahire;
 | **Backup** | `pg_dump -U utopia_user utopiahire > backup.sql` |
 | **Restore** | `psql -U utopia_user utopiahire < backup.sql` |
 
-### Performance Checklist
-
-- [ ] Indexes on all foreign keys
-- [ ] GIN indexes on JSONB columns
-- [ ] Connection pooling configured
-- [ ] Parameterized queries used
-- [ ] LIMIT on large result sets
-- [ ] Regular VACUUM ANALYZE
-- [ ] Query plans analyzed
-- [ ] Slow query logging enabled
-- [ ] Backup strategy in place
-- [ ] Monitoring configured
-
 ---
 
 **End of Part 5**
 
 ---
 
-**Documentation Navigation:**
-- [Part 1](./DATABASE_DOCUMENTATION_PART1.md): Overview, Architecture, Users, Resumes
-- [Part 2](./DATABASE_DOCUMENTATION_PART2.md): Resume Enhancements, Skills, Jobs
-- [Part 3](./DATABASE_DOCUMENTATION_PART3.md): Interview Module
-- [Part 4](./DATABASE_DOCUMENTATION_PART4.md): Footprint Scanner
-- **Part 5** (Current): Indexes, Migrations & Best Practices
-
----
-
-## Complete Documentation Set
-
-You now have **complete database documentation** covering:
-
-✅ **Part 1** - Database overview, architecture, users, resumes, analyses (1000 lines)  
-✅ **Part 2** - Resume enhancements, skills database, jobs module (1000 lines)  
-✅ **Part 3** - Interview module (5 tables, scoring, feedback) (1000 lines)  
-✅ **Part 4** - Digital footprint scanner, JSONB structures, privacy (950 lines)  
-✅ **Part 5** - Indexes, migrations, performance, troubleshooting (900 lines)
-
-**Total: ~4,850 lines of comprehensive database documentation**
 
 All documentation files are located in `/home/firas/Utopia/docs/`
