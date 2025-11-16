@@ -1,9 +1,6 @@
 # UtopiaHire Database Documentation - Part 2
 ## Resume Enhancement, Skills Database & Jobs Module
 
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+
-
 ---
 
 ## Table of Contents (Part 2)
@@ -245,7 +242,6 @@ WHERE (jsonb_array_elements(ir.changes_made->'detailed_changes')->>'impact') = '
 - Multiple enhancement versions tracked per resume
 - Each version builds on previous feedback
 - Version comparison available via API
-- Users can revert to previous versions
 
 ---
 
