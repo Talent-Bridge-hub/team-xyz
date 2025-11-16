@@ -121,7 +121,7 @@ For best implementation, use Ubuntu
 - **nltk** 3.8.1 - Natural Language Processing and text analysis
 
 #### Document Processing
-- **PyPDF2** 3.0.1 - PDF parsing and extraction
+- **PyPDF2/PdfPlumber** 3.0.1 - PDF parsing and extraction
 - **python-docx** 1.1.0 - Word document handling
 - **reportlab** 4.0.7 - PDF generation and templates
 
