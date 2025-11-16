@@ -240,3 +240,4 @@ Full Documentation in the docs folder
 ⭐ Star us on GitHub if you find UtopiaHire helpful!
 
 </div>
+All rights reserved 2025
