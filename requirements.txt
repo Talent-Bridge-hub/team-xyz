@@ -1,5 +1,5 @@
 # ============================================
-# UtopiaHire - Complete Requirements
+# CareerStar - Complete Requirements
 # Consolidated from root and backend requirements
 # Date: November 4, 2025
 # ============================================
