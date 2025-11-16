@@ -1198,7 +1198,3 @@ class JobCompatibilityResponse(BaseModel):
 
 ---
 
-**Document Info:**
-- **Total Lines (Part 1):** 1198
-- **Status:** ✅ Complete
-- **Last Updated:** January 2025
