@@ -1,11 +1,5 @@
 # Resume Module Documentation - Part 1
 ## Overview, Architecture, Features & Backend API
-
-> **Generated:** November 6, 2025  
-> **Module:** Resume Analyzer & Enhancer (Module 5)  
-> **Version:** 1.0  
-> **Status:** Production Ready
-
 ---
 
 ## Table of Contents - Part 1
