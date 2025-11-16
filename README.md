@@ -128,8 +128,6 @@ For best implementation, use Ubuntu
 #### HTTP & External APIs
 - **httpx** 0.25.2 - Async HTTP client
 - **requests** 2.31.0 - HTTP library for API calls
-- **beautifulsoup4** 4.12.2 - HTML parsing
-- **lxml** 4.9.3 - XML/HTML processing
 
 #### Development & Testing
 - **pytest** 7.4.3 - Testing framework
