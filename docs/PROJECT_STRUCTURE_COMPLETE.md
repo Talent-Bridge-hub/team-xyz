@@ -1,4 +1,4 @@
-# UtopiaHire - Complete Project Structure
+# CareerStar - Complete Project Structure
 
 ## Table of Contents
 
@@ -7,17 +7,11 @@
 3. [Backend Structure](#backend-structure)
 4. [Frontend Structure](#frontend-structure)
 5. [Utilities](#utilities)
-6. [Configuration](#configuration)
-7. [Data & Assets](#data--assets)
-8. [Documentation](#documentation)
-9. [Tests](#tests)
-10. [File Count Summary](#file-count-summary)
-
 ---
 
 ## Project Overview
 
-**UtopiaHire** is a comprehensive AI-powered career platform with 6 core modules:
+**CareerStar** is a comprehensive AI-powered career platform with 6 core modules:
 - **Module 1:** Authentication & User Management
 - **Module 2:** Job Matching & Recommendations
 - **Module 3:** AI Interview Simulator
@@ -221,11 +215,8 @@ frontend/
 │   │
 │   ├── contexts/                           # React contexts
 │   │   └── AuthContext.tsx                 # Authentication context provider
+│   │   
 │   │
-│   ├── hooks/                              # Custom React hooks (empty)
-│   │
-│   ├── i18n/                               # Internationalization
-│   │   └── I18nContext.tsx                 # i18n context provider
 │   │
 │   ├── pages/                              # Page components
 │   │   ├── auth/                           # Authentication pages
@@ -372,7 +363,7 @@ config/
 - **Groq API** - llama-3.3-70b-versatile for job compatibility (NEW)
 - **spaCy** - NLP processing
 - **HuggingFace** - AI models
-- **PyPDF2** - PDF parsing
+- **PyPDF2/PDFplmuber** - PDF parsing
 - **python-docx** - DOCX parsing
 - **ReportLab** - PDF generation
 
