@@ -1,4 +1,4 @@
-# UtopiaHire Database Documentation - Part 2
+# CareerStar Database Documentation - Part 2
 ## Resume Enhancement, Skills Database & Jobs Module
 
 ---
