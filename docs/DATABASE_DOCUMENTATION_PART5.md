@@ -861,5 +861,3 @@ REINDEX DATABASE utopiahire;
 
 ---
 
-
-All documentation files are located in `/home/firas/Utopia/docs/`
