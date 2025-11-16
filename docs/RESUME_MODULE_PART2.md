@@ -1325,7 +1325,8 @@ tail -f backend/uvicorn.log
 
 ### 15.1 Planned Features
 
-- [ ] **Multi-language support** (French, Arabic resumes)
+- [ ] **Multi-language support**
+- [ ] **Resume Builder**
 - [ ] **Resume templates customization** (colors, fonts)
 - [ ] **Batch analysis** (analyze multiple resumes)
 - [ ] **Resume comparison** (compare 2 resumes side-by-side)
