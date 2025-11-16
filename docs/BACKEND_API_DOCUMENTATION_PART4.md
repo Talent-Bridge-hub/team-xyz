@@ -1,4 +1,4 @@
-# UtopiaHire Backend API Documentation - Part 4
+# CareerStar Backend API Documentation - Part 4
 ## System Operations, Deployment & Testing
 ---
 
