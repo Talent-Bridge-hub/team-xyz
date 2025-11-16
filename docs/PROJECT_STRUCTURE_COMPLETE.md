@@ -7,6 +7,7 @@
 3. [Backend Structure](#backend-structure)
 4. [Frontend Structure](#frontend-structure)
 5. [Utilities](#utilities)
+6. [Configuration](#configuration)
 ---
 
 ## Project Overview
