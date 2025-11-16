@@ -5,11 +5,7 @@
 ## Table of Contents (Part 4)
 
 14. [Health Checks & Monitoring](#health-checks--monitoring)
-16. [Environment Configuration](#environment-configuration)
-17. [Deployment Guide](#deployment-guide)
-18. [Testing](#testing)
-19. [Troubleshooting](#troubleshooting)
-20. [API Quick Reference](#api-quick-reference)
+15. [API Quick Reference](#api-quick-reference)
 
 ---
 
@@ -106,7 +102,7 @@ X-Process-Time: 0.142
 This header indicates the server-side processing time in seconds.
 
 
-## 20. API Quick Reference
+## 15. API Quick Reference
 
 ### Complete Endpoint List (39 Endpoints)
 
