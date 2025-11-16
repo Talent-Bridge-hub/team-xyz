@@ -1,9 +1,6 @@
-# UtopiaHire Database Documentation - Part 1
+# CareerStar Database Documentation - Part 1
 ## Overview, Architecture & Core Tables
  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+
-
 ---
 
 ## Table of Contents (Part 1)
@@ -20,7 +17,7 @@
 
 ### Platform Database System
 
-**UtopiaHire** uses PostgreSQL 14+ as its primary database management system, providing:
+**CareerStar** uses PostgreSQL 14+ as its primary database management system, providing:
 - **ACID Compliance**: Ensures data integrity and consistency
 - **JSONB Support**: Flexible data storage for complex structures
 - **Advanced Indexing**: GIN, B-tree, and partial indexes for optimal performance
@@ -67,7 +64,7 @@ The database is organized into **6 logical modules**:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    UTOPIAHIRE DATABASE                       │
+│                    CareerStar DATABASE                       │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
