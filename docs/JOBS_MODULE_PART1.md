@@ -1,11 +1,6 @@
 # Jobs Module Documentation - Part 1 of 2
 ## Complete Technical Reference with Job Scraping & Matching
 
-**Version:** 1.0  
-**Last Updated:** January 2025  
-**Status:** Production Ready  
-**Coverage:** Backend API, Job Scraping, Configuration, Database Schema
-
 ---
 
 ## Table of Contents - Part 1
@@ -43,7 +38,7 @@ The **Jobs Module** is a comprehensive job discovery, matching, and analysis pla
 - **3 External APIs** with intelligent fallback:
   - SerpAPI (Google Jobs) - 100 searches/month
   - LinkedIn RapidAPI - 500 requests/month
-  - JSearch RapidAPI - 250 requests/month
+  - JSearch RapidAPI - 500 requests/month
 - **Automatic caching** (6-hour expiry)
 - **Rate limit management** with daily budgeting
 - **Deduplication** by unique job IDs
@@ -320,7 +315,7 @@ The job scraper uses **3 external APIs** with intelligent fallback logic to ensu
 
 1. **SerpAPI (Primary)** - Priority 1
    - Aggregates Google Jobs results
-   - 100 free searches/month
+   - 250 free searches/month
    - Best data quality and coverage
    - Endpoint: `https://serpapi.com/search`
 
@@ -332,7 +327,7 @@ The job scraper uses **3 external APIs** with intelligent fallback logic to ensu
 
 3. **JSearch RapidAPI (Fallback #2)** - Priority 3
    - Multi-source job aggregation
-   - 250 free requests/month
+   - 500 free requests/month
    - Backup for when primary APIs fail
    - Endpoint: `https://jsearch.p.rapidapi.com/search`
 
