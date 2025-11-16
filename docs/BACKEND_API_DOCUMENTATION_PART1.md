@@ -1,4 +1,4 @@
-# UtopiaHire Backend API Documentation - Part 1
+# CareerStar Backend API Documentation - Part 1
 ## Complete API Reference Guide
 
 ---
