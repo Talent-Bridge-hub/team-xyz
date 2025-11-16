@@ -119,7 +119,6 @@
 #### AI & Machine Learning
 - **Groq API** - Ultra-fast LLM inference (llama-3.3-70b-versatile)
 - **nltk** 3.8.1 - Natural Language Processing and text analysis
-- **spaCy** (optional) - Advanced NLP features
 
 #### Document Processing
 - **PyPDF2** 3.0.1 - PDF parsing and extraction
@@ -224,7 +223,7 @@
 ## 🚀 Quick Start Guide
 
 see SETUP_GUIDE.md
-Full Documentation in docs folder
+Full Documentation in the docs folder
 
 ## 🎉 Acknowledgments
 
