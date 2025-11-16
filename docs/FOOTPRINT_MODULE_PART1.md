@@ -1269,6 +1269,4 @@ CREATE INDEX idx_footprint_platforms_gin ON footprint_scans USING GIN(platforms_
 - AI Recommendations System (Groq Integration)
 - Utility Deep Dives (GitHub Analyzer, StackOverflow Scanner)
 - Frontend Components
-- Integration Flows
-- Testing & Deployment
 - Troubleshooting
