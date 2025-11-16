@@ -88,7 +88,7 @@
 ---
 
 ## 🛠️ Technology Stack
-
+For best implementation, use Ubuntu
 ### Backend (Python 3.9+)
 
 #### Core Framework & API
