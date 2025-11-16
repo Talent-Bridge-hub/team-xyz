@@ -1,10 +1,5 @@
-# UtopiaHire Database Documentation
+# CareerStar Database Documentation
 ## Complete Technical Reference
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+  
-> **Total Documentation:** ~4,850 lines across 5 parts
 
 ---
 
@@ -319,7 +314,7 @@ LIMIT 10;
 ## 🎯 Key Concepts
 
 ### JSONB Usage
-**UtopiaHire** extensively uses JSONB for flexible data storage:
+**CareerStar** extensively uses JSONB for flexible data storage:
 - Resume parsed data (skills, experience, education)
 - Job requirements and salary ranges
 - Interview feedback and scoring details
