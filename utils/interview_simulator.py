@@ -18,7 +18,7 @@ import random
 import json
 
 from config.database import execute_query, insert_one, update_one
-from utils.resume_parser import ResumeParser
+from utils.resume_parser import EnhancedResumeParser as ResumeParser
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

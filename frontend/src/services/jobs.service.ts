@@ -20,6 +20,7 @@ export interface JobPost {
   location: string;
   region?: string;
   type: string;
+  job_type?: string;
   experience_level?: string;
   description: string;
   required_skills: string[];

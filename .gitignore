@@ -112,6 +112,7 @@ Thumbs.db
 # ============================================
 /data/resumes/*.pdf
 /data/resumes/*.docx
+/data/resumes/enhanced/
 !/data/resumes/sample_resume.pdf
 /data/resumes/templates/*.pdf
 /data/resumes/templates/*.docx

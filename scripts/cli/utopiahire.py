@@ -24,7 +24,7 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.resume_parser import ResumeParser
+from utils.resume_parser import EnhancedResumeParser as ResumeParser
 from utils.resume_analyzer import ResumeAnalyzer
 from utils.resume_enhancer import ResumeEnhancer
 from utils.job_matcher import JobMatcher

@@ -1,0 +1,56 @@
+# ============================================
+# UtopiaHire - Docker Compose (Pre-built Images)
+# ============================================
+# Run with: GROQ_API_KEY=your_key docker compose up -d
+# ============================================
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: utopia-db
+    environment:
+      POSTGRES_USER: utopia_user
+      POSTGRES_PASSWORD: utopia_secure_2025
+      POSTGRES_DB: utopiahire
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utopia_user -d utopiahire"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API (Pre-built from Docker Hub)
+  backend:
+    image: firaskali/utopia-backend:latest
+    container_name: utopia-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://utopia_user:utopia_secure_2025@db:5432/utopiahire
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - PYTHONPATH=/app:/app/backend
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - resume_data:/app/data/resumes
+      - output_data:/app/data/outputs
+    restart: unless-stopped
+
+  # Frontend (Pre-built from Docker Hub)
+  frontend:
+    image: firaskali/utopia-frontend:latest
+    container_name: utopia-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  resume_data:
+  output_data:

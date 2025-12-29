@@ -1126,7 +1126,7 @@ async def analyze_job_compatibility(
         
         # Import compatibility analyzer
         from utils.job_compatibility_analyzer import JobCompatibilityAnalyzer
-        from utils.resume_parser import ResumeParser
+        from utils.resume_parser import EnhancedResumeParser as ResumeParser
         
         # Get resume from database
         resume = db.get_one('resumes', 'id = %s AND user_id = %s', (request.resume_id, current_user.id))

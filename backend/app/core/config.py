@@ -43,10 +43,8 @@ class Settings(BaseSettings):
         return cors_origins
     
     # Database Settings (PostgreSQL)
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://utopia_user:utopia_secure_2025@localhost/utopiahire"
-    )
+    # No hardcoded default - must be provided via environment variable
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 10
     

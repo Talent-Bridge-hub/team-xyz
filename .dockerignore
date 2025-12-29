@@ -1,0 +1,64 @@
+# Docker files
+.env
+.env.*
+!.env.docker
+!.env.example
+.git
+.gitignore
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+backend.log
+
+# Data directories (mount as volumes instead)
+data/resumes/*
+data/outputs/*
+!data/resumes/.gitkeep
+!data/outputs/.gitkeep
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Documentation
+docs/
+
+# Scripts not needed in container
+scripts/
+
+# Tests
+tests/
+
+# Node modules (for frontend, handled in its own Dockerfile)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

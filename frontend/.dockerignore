@@ -1,0 +1,14 @@
+# Frontend Docker Ignore
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+*.md
+.vscode
+.idea
+dist
+coverage
+.nyc_output
+*.log

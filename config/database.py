@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from typing import Optional, Dict, List, Any
 import logging
@@ -18,14 +19,39 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database configuration
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'utopiahire'),
-    'user': os.getenv('DB_USER', 'utopia_user'),
-    'password': os.getenv('DB_PASSWORD', 'utopia_secure_2025')
-}
+
+def get_db_config() -> Dict[str, Any]:
+    """
+    Get database configuration from DATABASE_URL or individual env vars.
+    DATABASE_URL takes precedence if set.
+    """
+    database_url = os.getenv('DATABASE_URL')
+    
+    if database_url:
+        # Parse DATABASE_URL (e.g., postgresql://user:password@host:port/dbname)
+        parsed = urlparse(database_url)
+        return {
+            'host': parsed.hostname or 'localhost',
+            'port': str(parsed.port or 5432),
+            'database': parsed.path.lstrip('/') if parsed.path else 'utopiahire',
+            'user': parsed.username or '',
+            'password': parsed.password or ''
+        }
+    else:
+        # Fallback to individual env vars
+        return {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'database': os.getenv('DB_NAME', 'utopiahire'),
+            'user': os.getenv('DB_USER', ''),
+            'password': os.getenv('DB_PASSWORD', '')
+        }
+
+
+# Database configuration - loaded dynamically
+DB_CONFIG = get_db_config()
+
+logger.info(f"Database config: host={DB_CONFIG['host']}, port={DB_CONFIG['port']}, database={DB_CONFIG['database']}, user={DB_CONFIG['user']}")
 
 # Connection pool for efficient database connections
 connection_pool = None

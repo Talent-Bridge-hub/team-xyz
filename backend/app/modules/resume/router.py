@@ -51,8 +51,8 @@ from backend.app.core.database import get_database, DatabaseWrapper
 from backend.app.api.deps import get_current_active_user
 from backend.app.models.user import UserResponse
 
-# Import existing resume utilities
-from utils.resume_parser import ResumeParser
+# Import resume utilities
+from utils.resume_parser import EnhancedResumeParser as ResumeParser
 from utils.resume_analyzer import ResumeAnalyzer
 from utils.resume_enhancer import ResumeEnhancer
 from utils.resume_templates import ResumeTemplateGenerator
@@ -61,7 +61,19 @@ from utils.resume_templates import ResumeTemplateGenerator
 router = APIRouter()
 
 # Configure upload settings
-UPLOAD_DIR = Path("/home/firas/Utopia/data/resumes")
+# Use environment variable, or detect Docker vs local environment
+def get_upload_dir():
+    env_dir = os.getenv("RESUME_UPLOAD_DIR")
+    if env_dir:
+        return Path(env_dir)
+    # Check if running in Docker (/app exists) or local
+    if Path("/app").exists():
+        return Path("/app/data/resumes")
+    else:
+        # Local development - use relative path from project root
+        return Path(__file__).parent.parent.parent.parent.parent / "data" / "resumes"
+
+UPLOAD_DIR = get_upload_dir()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -121,12 +133,21 @@ async def upload_resume(
             detail=f"Failed to save file: {str(e)}"
         )
     
-    # Parse resume
+    # Parse resume using Enhanced AI Parser
     try:
-        parser = ResumeParser()
+        parser = ResumeParser(use_ai=True)
         parsed_data = parser.parse_file(str(file_path))
+        logger.info(f"Resume parsed. Quality: {parsed_data.get('metadata', {}).get('extraction_quality', 'unknown')}")
         
-        # Store in database
+        # Store in database - save complete parsed data including validation
+        parsed_data_to_store = {
+            'raw_text': parsed_data.get('raw_text', ''),
+            'sections': parsed_data.get('sections', {}),
+            'structured_data': parsed_data.get('structured_data', {}),
+            'metadata': parsed_data.get('metadata', {}),
+            'validation': parsed_data.get('validation', {})  # AI validation results
+        }
+        
         resume_id = db.insert_one(
             "resumes",
             {
@@ -135,8 +156,8 @@ async def upload_resume(
                 "file_path": str(file_path),
                 "file_size": file_size,
                 "file_type": file_ext[1:],  # Remove dot
-                "parsed_text": parsed_data.get('raw_text', ''),  # Parser returns 'raw_text', not 'text'
-                "parsed_data": Json(parsed_data.get('sections', {})),  # JSONB field - use psycopg2.Json
+                "parsed_text": parsed_data.get('raw_text', ''),
+                "parsed_data": Json(parsed_data_to_store),  # JSONB field
                 "word_count": parsed_data.get('metadata', {}).get('word_count', 0),
                 "uploaded_at": datetime.utcnow()
             }
