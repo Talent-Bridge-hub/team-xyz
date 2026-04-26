@@ -1,4 +1,4 @@
-# UtopiaHire Database Documentation - Part 4
+# CareerStar Database Documentation - Part 4
 ## Digital Footprint Scanner Tables
 
 ---
@@ -19,7 +19,6 @@
 
 The **Digital Footprint Scanner** analyzes users' online professional presence across multiple platforms:
 - ✅ **GitHub**: Repository analysis, contribution activity, code quality
-- ✅ **LinkedIn**: Profile completeness, network strength, engagement
 - ✅ **StackOverflow**: Reputation, expertise areas, community contributions
 - ✅ **Comprehensive Scoring**: Multi-dimensional evaluation (visibility, activity, impact, expertise)
 - ✅ **Privacy Analysis**: Identifies potential privacy risks
@@ -112,11 +111,6 @@ CREATE TABLE IF NOT EXISTS footprint_scans (
     stackoverflow_data JSONB,
     stackoverflow_score INTEGER CHECK (stackoverflow_score >= 0 AND stackoverflow_score <= 100),
     
-    -- LinkedIn Data
-    linkedin_url TEXT,
-    linkedin_data JSONB,
-    linkedin_score INTEGER CHECK (linkedin_score >= 0 AND linkedin_score <= 100),
-    
     -- Aggregate Scores
     overall_visibility_score INTEGER CHECK (overall_visibility_score >= 0 AND overall_visibility_score <= 100),
     professional_score INTEGER CHECK (professional_score >= 0 AND professional_score <= 100),
@@ -154,10 +148,6 @@ CREATE TABLE IF NOT EXISTS footprint_scans (
 | `stackoverflow_name` | VARCHAR(255) | NULL | StackOverflow display name |
 | `stackoverflow_data` | JSONB | NULL | Complete SO profile data |
 | `stackoverflow_score` | INTEGER | 0-100 CHECK | StackOverflow presence score |
-| **LinkedIn** ||||
-| `linkedin_url` | TEXT | NULL | LinkedIn profile URL |
-| `linkedin_data` | JSONB | NULL | LinkedIn profile data |
-| `linkedin_score` | INTEGER | 0-100 CHECK | LinkedIn presence score |
 | **Aggregate Scores** ||||
 | `overall_visibility_score` | INTEGER | 0-100 CHECK | Combined visibility |
 | `professional_score` | INTEGER | 0-100 CHECK | Overall professionalism |
@@ -402,102 +392,7 @@ CREATE INDEX idx_footprint_platforms ON footprint_scans USING GIN(platforms_scan
 }
 ```
 
-### 3.3 LinkedIn Data Structure
-
-```json
-{
-  "profile": {
-    "name": "John Doe",
-    "headline": "Senior Backend Engineer | Building scalable systems",
-    "location": "Tunis, Tunisia",
-    "profile_url": "https://linkedin.com/in/johndoe",
-    "profile_image": "https://media.licdn.com/profile.jpg",
-    "industry": "Information Technology",
-    "current_position": "Senior Backend Engineer at TechCorp",
-    "summary": "Experienced engineer with 7+ years building distributed systems..."
-  },
-  "experience": [
-    {
-      "title": "Senior Backend Engineer",
-      "company": "TechCorp",
-      "location": "Tunis, Tunisia",
-      "start_date": "2020-01",
-      "end_date": null,
-      "is_current": true,
-      "duration_months": 58,
-      "description": "Leading backend architecture for microservices platform serving 1M+ users..."
-    },
-    {
-      "title": "Backend Developer",
-      "company": "StartupXYZ",
-      "location": "Remote",
-      "start_date": "2018-03",
-      "end_date": "2019-12",
-      "is_current": false,
-      "duration_months": 22,
-      "description": "Developed RESTful APIs and database schemas..."
-    }
-  ],
-  "education": [
-    {
-      "institution": "University of Tunis",
-      "degree": "Bachelor of Science",
-      "field_of_study": "Computer Science",
-      "start_year": 2014,
-      "end_year": 2018,
-      "grade": "3.8/4.0"
-    }
-  ],
-  "skills": [
-    {
-      "name": "Python",
-      "endorsements": 67,
-      "proficiency": "expert"
-    },
-    {
-      "name": "System Design",
-      "endorsements": 45,
-      "proficiency": "advanced"
-    },
-    {
-      "name": "PostgreSQL",
-      "endorsements": 52,
-      "proficiency": "advanced"
-    }
-  ],
-  "certifications": [
-    {
-      "name": "AWS Certified Solutions Architect",
-      "issuer": "Amazon Web Services",
-      "issue_date": "2023-06",
-      "expiry_date": "2026-06",
-      "credential_id": "AWS-SAA-12345"
-    }
-  ],
-  "network": {
-    "connections": 1245,
-    "followers": 2340,
-    "following": 456
-  },
-  "activity": {
-    "posts_last_month": 12,
-    "comments_last_month": 34,
-    "shares_last_month": 8,
-    "engagement_rate": 4.5,
-    "profile_views_last_90_days": 234,
-    "search_appearances_last_90_days": 456
-  },
-  "completeness": {
-    "profile_strength": "All-Star",
-    "profile_completeness": 95,
-    "missing_sections": ["Volunteer Experience"],
-    "recommendations_received": 8,
-    "recommendations_given": 12
-  }
-}
-```
-
-### 3.4 Privacy Report Structure
+### 3.3 Privacy Report Structure
 
 ```json
 {
@@ -566,7 +461,7 @@ CREATE INDEX idx_footprint_platforms ON footprint_scans USING GIN(platforms_scan
 }
 ```
 
-### 3.5 Recommendations Structure
+### 3.4 Recommendations Structure
 
 ```json
 {
@@ -666,7 +561,7 @@ CREATE INDEX idx_footprint_platforms ON footprint_scans USING GIN(platforms_scan
 }
 ```
 
-### 3.6 Career Insights Structure
+### 3.5 Career Insights Structure
 
 ```json
 {

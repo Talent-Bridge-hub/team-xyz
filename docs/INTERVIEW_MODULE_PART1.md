@@ -1,10 +1,5 @@
 # Interview Module Documentation - Part 1
 
-> **Generated:** November 6, 2025  
-> **Module:** AI Interview Simulator  
-> **Version:** 1.0  
-> **Description:** Complete documentation for the Interview Module including backend API, database schema, and AI integration
-
 ---
 
 ## Table of Contents - Part 1

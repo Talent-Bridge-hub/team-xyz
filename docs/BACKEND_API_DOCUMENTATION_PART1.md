@@ -1,10 +1,5 @@
-# UtopiaHire Backend API Documentation - Part 1
+# CareerStar Backend API Documentation - Part 1
 ## Complete API Reference Guide
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Base URL:** `http://localhost:8000/api/v1`  
-> **Documentation URL:** `http://localhost:8000/api/v1/docs`
 
 ---
 
@@ -23,7 +18,7 @@
 
 ### Platform Description
 
-**UtopiaHire** is an AI-powered career platform designed for developers and tech professionals in MENA and Sub-Saharan Africa. The backend provides RESTful APIs for:
+**CareerStar** is an AI-powered career platform designed for developers and tech professionals in MENA and Sub-Saharan Africa. The backend provides RESTful APIs for:
 
 - **User Authentication & Management**
 - **Resume Analysis & Enhancement**

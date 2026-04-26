@@ -1,10 +1,5 @@
-# UtopiaHire Backend API Documentation - Part 2
+# CareerStar Backend API Documentation - Part 2
 ## Resume & Jobs API Reference
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Base URL:** `http://localhost:8000/api/v1`
-
 ---
 
 ## Table of Contents (Part 2)
@@ -792,7 +787,7 @@ curl -X POST "http://localhost:8000/api/v1/jobs/search" \
 
 ### POST /api/v1/jobs/compatibility
 
-**Analyze job compatibility with AI (NEW - Groq-powered)**
+**Analyze job compatibility with AI (Groq-powered)**
 
 Uses Groq AI (llama-3.3-70b-versatile) to provide detailed compatibility analysis between resume and job.
 

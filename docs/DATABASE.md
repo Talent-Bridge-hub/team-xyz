@@ -1,10 +1,5 @@
-# UtopiaHire Database Documentation
+# CareerStar Database Documentation
 ## Complete Technical Reference
-
-> **Generated:** November 6, 2025  
-> **Version:** 1.0.0  
-> **Database:** PostgreSQL 14+  
-> **Total Documentation:** ~4,850 lines across 5 parts
 
 ---
 
@@ -148,7 +143,7 @@ This comprehensive database documentation is organized into **5 parts**, each un
 ### Module 4: Interview (5 tables)
 | Table | Purpose | Key Features |
 |-------|---------|--------------|
-| `question_bank` | Question library | 500+ questions, arrays for skills/roles |
+| `question_bank` | Question library | 40+ questions, arrays for skills/roles |
 | `interview_sessions` | User sessions | Status tracking, timing, scores |
 | `interview_questions` | Session questions | Order tracking, time limits |
 | `interview_answers` | User responses | 6-dimension scoring, JSONB feedback |
@@ -319,7 +314,7 @@ LIMIT 10;
 ## 🎯 Key Concepts
 
 ### JSONB Usage
-**UtopiaHire** extensively uses JSONB for flexible data storage:
+**CareerStar** extensively uses JSONB for flexible data storage:
 - Resume parsed data (skills, experience, education)
 - Job requirements and salary ranges
 - Interview feedback and scoring details

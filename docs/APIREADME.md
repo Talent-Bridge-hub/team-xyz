@@ -1,9 +1,9 @@
-# UtopiaHire Backend API - Complete Documentation
+# CareerStar Backend API - Complete Documentation
 
 
 ## 📚 Documentation Structure
 
-This complete API documentation is organized into 4 parts covering all aspects of the UtopiaHire backend:
+This complete API documentation is organized into 4 parts covering all aspects of the CareerStar backend:
 
 ### [Part 1: Foundation & Authentication](./BACKEND_API_DOCUMENTATION_PART1.md)
 **Topics Covered:**

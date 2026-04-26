@@ -1,4 +1,4 @@
-# UtopiaHire Database Documentation - Part 3
+# CareerStar Database Documentation - Part 3
 ## Interview Module Tables
 ---
 

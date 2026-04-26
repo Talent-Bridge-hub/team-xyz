@@ -1,12 +1,9 @@
-# UtopiaHire - Interview Module Documentation (Part 2A)
+# CareerStar - Interview Module Documentation (Part 2)
 
-> **Generated:** November 6, 2025  
-> **Version:** 1.0  
-> **Part:** 2A of 3 (Database Schema & Utility Modules)
 
 ---
 
-## Table of Contents (Part 2A)
+## Table of Contents (Part 2)
 
 1. [Database Schema Details](#database-schema-details)
 2. [Utility Modules Deep Dive](#utility-modules-deep-dive)
@@ -184,6 +181,7 @@ CREATE INDEX idx_qbank_roles ON interview_question_bank USING GIN(job_roles);
 | Product Management | 2 | Mid (1), Senior (1) |
 | **Total** | **40+** | Junior (12), Mid (16), Senior (12) |
 
+Will be extended later with our models
 ---
 
 ### 1.3 Table: `interview_questions`
@@ -1104,14 +1102,8 @@ def analyze_answer(self, ...):
 
 ---
 
-### Summary
-
-This completes Part 2A of the Interview Module documentation, covering:
-1. ✅ **Database Schema Details** - All 5 tables with complete field descriptions, indexes, and examples
-2. ✅ **Utility Modules Deep Dive** - InterviewSimulator and GroqAnswerAnalyzer with detailed method documentation
-
-**Next:** Part 2B will cover Frontend Components, Integration Flows, Configuration, Testing, and Troubleshooting.
+**Next:** Part 3 will cover Frontend Components, Integration Flows, Configuration, Testing, and Troubleshooting.
 
 ---
 
-**Part 2A Complete** | [Continue to Part 2B →](./INTERVIEW_MODULE_PART2B.md)
+**Part 2 Complete** | [Continue to Part 3 →](./INTERVIEW_MODULE_PART3.md)

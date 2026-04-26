@@ -1,4 +1,4 @@
-# 🌟 UtopiaHire - AI-Powered Career Platform
+# 🌟 CareerStar - AI-Powered Career Platform
 
 > **A comprehensive, production-ready AI-powered career platform with 5 integrated modules for job seekers and professionals in MENA & Sub-Saharan Africa.**
 
@@ -88,7 +88,7 @@
 ---
 
 ## 🛠️ Technology Stack
-
+For best implementation, use Ubuntu
 ### Backend (Python 3.9+)
 
 #### Core Framework & API
@@ -119,18 +119,15 @@
 #### AI & Machine Learning
 - **Groq API** - Ultra-fast LLM inference (llama-3.3-70b-versatile)
 - **nltk** 3.8.1 - Natural Language Processing and text analysis
-- **spaCy** (optional) - Advanced NLP features
 
 #### Document Processing
-- **PyPDF2** 3.0.1 - PDF parsing and extraction
+- **PyPDF2/PdfPlumber** 3.0.1 - PDF parsing and extraction
 - **python-docx** 1.1.0 - Word document handling
 - **reportlab** 4.0.7 - PDF generation and templates
 
 #### HTTP & External APIs
 - **httpx** 0.25.2 - Async HTTP client
 - **requests** 2.31.0 - HTTP library for API calls
-- **beautifulsoup4** 4.12.2 - HTML parsing
-- **lxml** 4.9.3 - XML/HTML processing
 
 #### Development & Testing
 - **pytest** 7.4.3 - Testing framework
@@ -224,7 +221,7 @@
 ## 🚀 Quick Start Guide
 
 see SETUP_GUIDE.md
-Full Documentation in docs folder
+Full Documentation in the docs folder
 
 ## 🎉 Acknowledgments
 
@@ -241,3 +238,4 @@ Full Documentation in docs folder
 ⭐ Star us on GitHub if you find UtopiaHire helpful!
 
 </div>
+All rights reserved 2025
