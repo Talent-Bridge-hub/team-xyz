@@ -26,12 +26,9 @@ const JobCard = ({ job, matchScore, onViewDetails }: JobCardProps) => {
   };
 
   const truncateDescription = (text: string, maxLength: number = 150) => {
-    if (!text) return 'No description available';
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength).trim() + '...';
   };
-
-  const jobType = job.type || job.job_type || 'Full-time';
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6 cursor-pointer"
@@ -70,7 +67,7 @@ const JobCard = ({ job, matchScore, onViewDetails }: JobCardProps) => {
       {/* Job Type and Experience Level */}
       <div className="flex gap-2 mb-3">
         <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded font-medium">
-          {jobType}
+          {job.type}
         </span>
         {job.experience_level && (
           <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded font-medium">
@@ -81,7 +78,7 @@ const JobCard = ({ job, matchScore, onViewDetails }: JobCardProps) => {
 
       {/* Description Preview */}
       <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-        {truncateDescription(job.description || '')}
+        {truncateDescription(job.description)}
       </p>
 
       {/* Skills */}

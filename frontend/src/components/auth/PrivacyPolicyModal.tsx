@@ -68,7 +68,7 @@ export const PrivacyPolicyModal = ({ isOpen, onClose }: PrivacyPolicyModalProps)
                         1. Introduction
                       </h3>
                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Welcome to <span className="font-semibold text-blue-600 dark:text-blue-400">CareerStar</span> (also referred to as "Utopia", "we", "our", or "us"). 
+                        Welcome to <span className="font-semibold text-blue-600 dark:text-blue-400">CareerStar</span> (also referred to as, "we", "our", or "us"). 
                         We are committed to protecting your privacy and ensuring transparency about how we collect, use, and protect your personal information.
                       </p>
                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-2">

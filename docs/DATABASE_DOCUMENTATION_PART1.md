@@ -1,6 +1,7 @@
 # UtopiaHire Database Documentation - Part 1
 ## Overview, Architecture & Core Tables
- 
+
+> **Generated:** November 6, 2025  
 > **Version:** 1.0.0  
 > **Database:** PostgreSQL 14+
 
@@ -40,11 +41,11 @@ Password: (environment variable)
 
 **Environment Variables:**
 ```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=utopiahire
-DB_USER=utopia_user
-DB_PASSWORD=utopia_secure_2025
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD=
 ```
 
 ### Key Statistics

@@ -132,7 +132,7 @@ const JobDetailModal = ({ isOpen, onClose, job, matchScore }: JobDetailModalProp
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Job Type</p>
-                <p className="font-medium text-gray-900">{job.type || job.job_type || 'Not specified'}</p>
+                <p className="font-medium text-gray-900">{job.type}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Experience Level</p>
@@ -165,17 +165,15 @@ const JobDetailModal = ({ isOpen, onClose, job, matchScore }: JobDetailModalProp
             </div>
 
             {/* Description */}
-            {job.description && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Description</h3>
-                <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-line">
-                  {job.description}
-                </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Description</h3>
+              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-line">
+                {job.description}
               </div>
-            )}
+            </div>
 
             {/* Required Skills */}
-            {job.required_skills && job.required_skills.length > 0 && (
+            {job.required_skills.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
@@ -189,7 +187,7 @@ const JobDetailModal = ({ isOpen, onClose, job, matchScore }: JobDetailModalProp
             )}
 
             {/* Preferred Skills */}
-            {job.preferred_skills && job.preferred_skills.length > 0 && (
+            {job.preferred_skills.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Preferred Skills</h3>
                 <div className="flex flex-wrap gap-2">
